@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spend It All</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --accent: #00d4ff;
+      --accent-dim: rgba(0,212,255,0.12);
+      --accent-glow: rgba(0,212,255,0.25);
+      --bg: #07090f;
+      --surface: #0d1117;
+      --surface2: #161b27;
+      --border: rgba(255,255,255,0.07);
+      --border-hover: rgba(255,255,255,0.15);
+      --text: #e2e8f0;
+      --text-muted: #64748b;
+      --text-dim: #2d3748;
+    }
+    body.s-debt    { --accent:#ff4d4d; --accent-dim:rgba(255,77,77,.12); --accent-glow:rgba(255,77,77,.25); }
+    body.s-powerball{ --accent:#ffd700; --accent-dim:rgba(255,215,0,.12); --accent-glow:rgba(255,215,0,.25); }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ─────────────────────────────────────────── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(7,9,15,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem 0.85rem;
+    }
+    .header-top { margin-bottom: 0.6rem; }
+    .site-title {
+      font-size: 1.75rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--accent);
+      transition: color 0.35s, opacity 0.15s;
+      cursor: pointer;
+      user-select: none;
+      line-height: 1;
+      white-space: nowrap;
+    }
+    .site-title:hover { opacity: 0.7; }
+    .balance-stats {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      margin: 1rem 0 0.55rem;
+    }
+    .stat { text-align: center; line-height: 1; }
+    .stat-num {
+      font-size: 2.6rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      transition: color 0.35s;
+      line-height: 1;
+    }
+    .stat-num.stat-spent {
+      font-size: 2rem;
+      color: var(--text-muted);
+    }
+    .stat-lbl {
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      margin-top: 0.2rem;
+    }
+    .stat-divider {
+      width: 1px;
+      height: 2.5rem;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    /* Scenario cards — compact horizontal pills */
+    .scenario-picker {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+    .sc-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.5rem 0.5rem;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+    }
+    .sc-card:hover { border-color: var(--accent); background: var(--accent-dim); }
+    .sc-card.active {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+    .sc-emoji { font-size: 1.2rem; line-height: 1; }
+    .sc-name { font-size: 0.85rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sc-card.active .sc-name { color: var(--accent); }
+    .sc-budget { display: none; }
+    .tagline { display: none; }
+    .progress-track {
+      margin-top: 0.6rem;
+      height: 5px;
+      background: var(--surface2);
+      border-radius: 9999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      border-radius: 9999px;
+      transition: width 0.35s ease, background 0.35s;
+    }
+    .progress-lbl {
+      margin-top: 0.3rem;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    @keyframes flashBuy  { 0%,100%{color:var(--accent)} 40%{color:#ff5555} }
+    @keyframes flashSell { 0%,100%{color:var(--accent)} 40%{color:#4ade80} }
+    .flash-buy  { animation: flashBuy  0.35s ease; }
+    .flash-sell { animation: flashSell 0.35s ease; }
+
+    /* ── GRID ───────────────────────────────────────────── */
+    .main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 0.85rem;
+    }
+
+    /* ── CARD ───────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s, opacity 0.2s, filter 0.2s;
+      position: relative;
+    }
+    .card:not(.impossible):not(.broke):hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 24px var(--accent-dim);
+    }
+    .card.owned {
+      border-color: var(--accent);
+      background: linear-gradient(140deg, var(--surface), var(--surface2));
+    }
+    .card.broke { opacity: 0.38; filter: grayscale(0.6); }
+    .card.impossible { opacity: 0.28; cursor: default; }
+
+    .card-emoji { font-size: 2.25rem; line-height: 1; }
+    .card-name {
+      font-size: 0.875rem;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--text);
+    }
+    .card-price {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      transition: color 0.35s;
+    }
+    .card-desc {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+      flex: 1;
+    }
+    .impossible-badge {
+      display: inline-block;
+      font-size: 0.6rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      background: rgba(255,68,68,0.15);
+      color: #f87171;
+      border: 1px solid rgba(255,68,68,0.35);
+      border-radius: 4px;
+      padding: 0.1rem 0.35rem;
+      margin-left: 0.3rem;
+      vertical-align: middle;
+    }
+
+    .card-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.3rem;
+    }
+    .btn-q {
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      font: 700 1.1rem/1 inherit;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+    .btn-q:not(:disabled):hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .btn-q:disabled { opacity: 0.25; cursor: not-allowed; }
+    .btn-buy:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+
+    .qty-inp {
+      flex: 1;
+      min-width: 0;
+      text-align: center;
+      font: 700 0.95rem/1 inherit;
+      font-variant-numeric: tabular-nums;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      outline: none;
+      width: 100%;
+      cursor: text;
+      transition: color 0.15s, background 0.15s;
+      border-radius: 4px;
+      padding: 2px 0;
+    }
+    .qty-inp:focus {
+      background: var(--surface2);
+      color: var(--text);
+    }
+    .qty-inp.nonzero { color: var(--accent); }
+    /* hide spin arrows */
+    .qty-inp::-webkit-inner-spin-button,
+    .qty-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .qty-inp[type=number] { -moz-appearance: textfield; appearance: textfield; }
+
+    /* ── ACTIONS BAR ─────────────────────────────────────── */
+    .actions-bar {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 1.5rem 2.5rem;
+      display: flex;
+      justify-content: center;
+    }
+    .btn-summary {
+      padding: 0.55rem 1.4rem;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 9999px;
+      font: 600 0.82rem/1 inherit;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-summary:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── OVERLAY ─────────────────────────────────────────── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(14px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 560px;
+      width: 100%;
+      max-height: 82vh;
+      overflow-y: auto;
+      box-shadow: 0 0 60px var(--accent-glow);
+      transition: border-color 0.35s, box-shadow 0.35s;
+    }
+    .modal-title { font-size: 1.6rem; font-weight: 900; margin-bottom: 0.35rem; }
+    .modal-sub { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+
+    .receipt { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.85rem;
+      gap: 0.5rem;
+    }
+    .receipt-row:last-child { border-bottom: none; font-weight: 700; font-size: 0.95rem; }
+    .receipt-name { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
+    .receipt-name span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .receipt-total { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; transition: color 0.35s; }
+    .receipt-empty { text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.875rem; }
+
+    .modal-btns { display: flex; gap: 0.6rem; }
+    .btn-continue {
+      flex: 1;
+      padding: 0.8rem;
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      border-radius: 10px;
+      font: 800 0.95rem/1 inherit;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-continue:hover { background: var(--accent-dim); }
+    .btn-reset {
+      flex: 1;
+      padding: 0.8rem;
+      background: var(--accent);
+      color: #000;
+      border: 2px solid var(--accent);
+      border-radius: 10px;
+      font: 800 0.95rem/1 inherit;
+      cursor: pointer;
+      transition: opacity 0.2s, background 0.35s, border-color 0.35s;
+    }
+    .btn-reset:hover { opacity: 0.82; }
+
+    /* ── RESPONSIVE ──────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .header-inner { padding: 0.5rem 0.85rem; }
+      .site-title { font-size: 1rem; }
+      .balance-num { font-size: 1.45rem; }
+      .sc-name { font-size: 0.65rem; }
+      .main { padding: 1rem; }
+      .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.65rem; }
+      .actions-bar { padding: 0 1rem 2rem; }
+      .modal-btns { flex-direction: column; }
+    }
+  </style>
+</head>
+<body class="s-elon">
+
+<!-- ── HEADER ─────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="site-title" onclick="resetCurrent()">💸 Spend It All</div>
+    </div>
+    <div class="scenario-picker">
+      <button class="sc-card active" data-id="elon" onclick="switchScenario('elon')">
+        <span class="sc-emoji">🚀</span><span class="sc-name">Elon Musk's Money</span>
+      </button>
+      <button class="sc-card" data-id="debt" onclick="switchScenario('debt')">
+        <span class="sc-emoji">🏛️</span><span class="sc-name">National Debt</span>
+      </button>
+      <button class="sc-card" data-id="powerball" onclick="switchScenario('powerball')">
+        <span class="sc-emoji">🎰</span><span class="sc-name">Powerball</span>
+      </button>
+    </div>
+    <div class="balance-stats">
+      <div class="stat">
+        <div class="stat-num" id="bal">$200B</div>
+        <div class="stat-lbl">Remaining</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat">
+        <div class="stat-num stat-spent" id="spent-display">$0</div>
+        <div class="stat-lbl">Spent</div>
+      </div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="pfill"></div></div>
+    <div class="tagline" id="tagline"></div>
+  </div>
+</header>
+
+<!-- ── GRID ───────────────────────────────── -->
+<div class="main">
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="actions-bar">
+  <button class="btn-summary" onclick="openSummary(false)">📋 View Spending Summary</button>
+</div>
+
+<div style="text-align:center;padding:1rem 0 2rem;font-size:0.75rem;color:#374151;">Made by Yaakov Sassoon</div>
+
+<!-- ── OVERLAY ────────────────────────────── -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-title" id="mtitle"></div>
+    <div class="modal-sub"   id="msub"></div>
+    <div class="receipt"     id="receipt"></div>
+    <div class="modal-btns">
+      <button class="btn-continue" onclick="closeOverlay()">Continue Spending</button>
+      <button class="btn-reset"    onclick="resetCurrent()">Start Over</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+
+const SCENARIOS = [
+  {
+    id: 'elon', cls: 's-elon',
+    label: "🚀 Elon Musk's Money",
+    budget: 200_000_000_000,
+    tagline: "He's got too much. Fix it.",
+    endTitle: "🚀 You spent Elon's fortune!",
+    endSub: "He'll make it back by Tuesday.",
+    items: [
+      { id:'e01', e:'🐕', n:'Dogecoin (1 coin)',              p:0.15,              d:'To the moon!' },
+      { id:'e02', e:'🍔', n:'Big Mac',                        p:5,                 d:'Two all-beef patties.' },
+      { id:'e03', e:'🧢', n:'Boring Company Hat',             p:25,                d:'Digs tunnels, sells hats.' },
+      { id:'e04', e:'👕', n:'Neuralink T-Shirt',              p:35,                d:'Merch for the brainchip faithful.' },
+      { id:'e05', e:'🤖', n:'Grok Subscription (1 month)',    p:30,                d:'Just ask it to do your taxes.' },
+      { id:'e06', e:'📡', n:'Starlink Dish',                  p:499,               d:'Internet in the middle of nowhere.' },
+      { id:'e07', e:'🔥', n:'Boring Co. Flamethrower',        p:500,               d:"Sold out instantly. You're welcome." },
+      { id:'e08', e:'⚡', n:'Powerwall',                      p:9_200,             d:'Store your solar energy dreams.' },
+      { id:'e09', e:'🦾', n:'Tesla Bot (Optimus)',             p:20_000,            d:'Your personal robot butler.' },
+      { id:'e10', e:'🛺', n:'Cybercab (Robotaxi)',             p:30_000,            d:'No steering wheel, no problem.' },
+      { id:'e11', e:'🚗', n:'Cybertruck',                     p:60_000,            d:'Bulletproof. Allegedly.' },
+      { id:'e12', e:'🏎️', n:'Tesla Model S',                  p:89_990,            d:'Ludicrous mode engaged.' },
+      { id:'e13', e:'🚛', n:'Tesla Semi',                     p:150_000,           d:'For when you need to haul stuff fast.' },
+      { id:'e14', e:'🧠', n:'Neuralink Implant',              p:50_000,            d:'Think faster. Theoretically.' },
+      { id:'e15', e:'🚀', n:'Tesla Roadster',                 p:200_000,           d:'0–60 in 1.9 seconds.' },
+      { id:'e16', e:'🐕', n:'Dogecoin (1 million coins)',     p:150_000,           d:"You're a whale now." },
+      { id:'e17', e:'✈️', n:'Private Jet Charter',            p:100_000,           d:'Never fly commercial again.' },
+      { id:'e18', e:'🌌', n:'Space Tourism Ticket',           p:450_000,           d:'3 days in orbit. 3.' },
+      { id:'e19', e:'🖼️', n:'A Meme NFT',                    p:1_000_000,         d:"Right-click, save. Still worthless." },
+      { id:'e20', e:'🚇', n:'Boring Company Tunnel',          p:10_000_000,        d:'Under your city, if you want.' },
+      { id:'e21', e:'🏁', n:'Formula 1 Team',                 p:400_000_000,       d:'Vroom.' },
+      { id:'e22', e:'🏝️', n:'A Private Island',               p:50_000_000,        d:'Your own country. Almost.' },
+      { id:'e23', e:'🗳️', n:"A Country's Election",           p:300_000_000,       d:'(Satirical, obviously.)' },
+      { id:'e24', e:'🐉', n:'SpaceX Dragon Capsule',          p:80_000_000,        d:'NASA uses these, just saying.' },
+      { id:'e25', e:'🚀', n:'SpaceX Falcon 9 Launch',         p:67_000_000,        d:'Reusable! Kind of.' },
+      { id:'e26', e:'🛸', n:'Starship Launch',                p:100_000_000,       d:'The big one.' },
+      { id:'e27', e:'📺', n:'A News Channel',                 p:500_000_000,       d:'Say anything you want.' },
+      { id:'e28', e:'🏀', n:'An NBA Team',                    p:3_000_000_000,     d:'Championship not included.' },
+      { id:'e29', e:'⚛️', n:'A Nuclear Submarine',            p:3_400_000_000,     d:'For peaceful purposes.' },
+      { id:'e30', e:'💻', n:'AI Supercomputer (Colossus)',    p:4_000_000_000,     d:'100,000 GPUs. For vibes.' },
+      { id:'e31', e:'🏭', n:'Tesla Gigafactory',              p:5_000_000_000,     d:'Make your own EVs.' },
+      { id:'e32', e:'🕳️', n:'The Boring Company',             p:5_700_000_000,     d:'Dig it.' },
+      { id:'e33', e:'🚄', n:'Hyperloop Prototype',            p:6_000_000_000,     d:'Still faster than LA traffic.' },
+      { id:'e34', e:'🏗️', n:'SpaceX Starbase',               p:1_000_000_000,     d:'Your very own launchpad.' },
+      { id:'e35', e:'🛰️', n:'Starlink Constellation',         p:10_000_000_000,    d:'5,000+ satellites. All yours.' },
+      { id:'e36', e:'🌍', n:'Tesla Gigafactory Network',      p:20_000_000_000,    d:'All 5 of them.' },
+      { id:'e37', e:'🧬', n:'xAI (whole company)',            p:40_000_000_000,    d:'Grok included.' },
+      { id:'e38', e:'🐦', n:'Twitter/X (whole thing)',        p:44_000_000_000,    d:'Was worth $44B. Maybe.' },
+      { id:'e39', e:'🏗️', n:'All Tesla Factories',            p:15_000_000_000,    d:'Vertical integration perfected.' },
+      { id:'e40', e:'🔴', n:'Buy Mars',                       p:199_000_000_000,   d:"He's basically already claimed it." },
+    ]
+  },
+  {
+    id: 'debt', cls: 's-debt',
+    label: '🇺🇸 National Debt',
+    budget: 33_000_000_000_000,
+    tagline: "It's your problem too. Fix it.",
+    endTitle: "💸 You spent it all!",
+    endSub: "Didn't fix a thing. Felt incredible though.",
+    items: [
+      { id:'d01', e:'🎰', n:'A Scratch-off Ticket',           p:1,                               d:'1-in-4 chance of winning $2.' },
+      { id:'d02', e:'☕', n:'A Coffee',                        p:5,                               d:'Not even the fancy kind.' },
+      { id:'d03', e:'🍟', n:'Happy Meal',                     p:7,                               d:'The toy is worth more.' },
+      { id:'d04', e:'📺', n:'Monthly Streaming Bundle',       p:50,                              d:'All of them. Still nothing to watch.' },
+      { id:'d05', e:'⛽', n:'A Tank of Gas',                  p:70,                              d:'Remember when this was $25?' },
+      { id:'d06', e:'🎮', n:'PS5',                            p:499,                             d:'Back in stock. Finally.' },
+      { id:'d07', e:'📱', n:'iPhone 16 Pro Max',              p:1_599,                           d:'Titanium for your pocket.' },
+      { id:'d08', e:'📚', n:'A Year of College (state)',      p:25_000,                          d:'Just one year.' },
+      { id:'d09', e:'💼', n:'Average American Salary',        p:56_000,                          d:'12 months of work.' },
+      { id:'d10', e:'🏠', n:'Average American Home',          p:400_000,                         d:'Not in California.' },
+      { id:'d11', e:'📣', n:'Superbowl Ad (30 sec)',          p:7_000_000,                       d:'30 seconds. $7 million. Worth it?' },
+      { id:'d12', e:'✈️', n:'F-35 Fighter Jet',               p:80_000_000,                      d:"America's most expensive oopsie." },
+      { id:'d13', e:'🛫', n:'Air Force One',                  p:660_000_000,                     d:'Comes with a pilot.' },
+      { id:'d14', e:'🧱', n:'Build a Border Wall',            p:25_000_000_000,                  d:'(Mexico not paying.)' },
+      { id:'d15', e:'🚀', n:'NASA Annual Budget',             p:25_000_000_000,                  d:'The whole year.' },
+      { id:'d16', e:'⚓', n:'Aircraft Carrier (Gerald Ford)', p:13_000_000_000,                  d:"The world's most expensive boat." },
+      { id:'d17', e:'🌕', n:'A Moon Base',                    p:10_000_000_000,                  d:'Artemis has entered the chat.' },
+      { id:'d18', e:'🔴', n:'A Mars Mission',                 p:100_000_000_000,                 d:'One-way ticket extra.' },
+      { id:'d19', e:'📱', n:'Buy TikTok',                     p:50_000_000_000,                  d:'Still banned, probably.' },
+      { id:'d20', e:'🧊', n:'Buy Greenland',                  p:12_500_000_000,                  d:'Trump tried. You can too.' },
+      { id:'d21', e:'🛸', n:'International Space Station',    p:150_000_000_000,                 d:'25 years of assembly.' },
+      { id:'d22', e:'💊', n:'Cure Malaria Globally',          p:90_000_000_000,                  d:'Actually worth it.' },
+      { id:'d23', e:'🌾', n:'End World Hunger (1 year)',      p:330_000_000_000,                 d:'$330B. We have the money.' },
+      { id:'d24', e:'🌳', n:'Plant 1 Trillion Trees',         p:300_000_000_000,                 d:'The math checks out.' },
+      { id:'d25', e:'🎓', n:'All US Student Debt',            p:1_700_000_000_000,               d:'45 million people relieved.' },
+      { id:'d26', e:'🏥', n:'All US Medical Debt',            p:195_000_000_000,                 d:'Gone. Just like that.' },
+      { id:'d27', e:'💳', n:'All US Credit Card Debt',        p:1_100_000_000_000,               d:'Freedom from minimum payments.' },
+      { id:'d28', e:'🎖️', n:'US Military (1 year)',           p:886_000_000_000,                 d:'Jets, ships, the works.' },
+      { id:'d29', e:'🛣️', n:'Fix All US Roads',               p:786_000_000_000,                 d:'No more potholes.' },
+      { id:'d30', e:'🚀', n:'Buy SpaceX',                     p:150_000_000_000,                 d:'Rockets included.' },
+      { id:'d31', e:'🌌', n:'Fund NASA for 100 Years',        p:2_500_000_000_000,               d:'To infinity, and beyond.' },
+      { id:'d32', e:'💰', n:'Universal Basic Income (1 yr)',  p:3_000_000_000_000,               d:'$1K/month for every American.' },
+      { id:'d33', e:'🏨', n:'Universal Healthcare (10 yrs)', p:3_500_000_000_000,               d:'Free checkups for a decade.' },
+      { id:'d34', e:'🍎', n:'Buy Apple (whole company)',      p:3_400_000_000_000,               d:'Tim Cook not included.' },
+      { id:'d35', e:'🔍', n:'Buy All of Google',              p:2_000_000_000_000,               d:'Still no dark mode on Docs.' },
+      { id:'d36', e:'📦', n:'All Amazon Stock',               p:1_800_000_000_000,               d:'Prime for everyone.' },
+      { id:'d37', e:'🛤️', n:'US Interstate Highway System',  p:530_000_000_000,                 d:'48,000 miles of road.' },
+      { id:'d38', e:'🌽', n:'Buy All US Farmland',            p:2_700_000_000_000,               d:'Every acre.' },
+      { id:'d39', e:'🥇', n:"World's Entire Gold Supply",    p:13_000_000_000_000,              d:'Every ounce ever mined.' },
+      { id:'d40', e:'📈', n:'All of Wall Street',             p:40_000_000_000_000,              d:'Buy the market. Be the market.' },
+      { id:'d41', e:'💀', n:'Death Star (NASA estimate)',     p:852_000_000_000_000_000,         d:'You cannot afford this. Nobody can.', impossible:true },
+    ]
+  },
+  {
+    id: 'powerball', cls: 's-powerball',
+    label: '🎰 Powerball',
+    budget: 1_000_000_000,
+    tagline: "You finally won. Now what?",
+    endTitle: "🎰 You're broke! Again!",
+    endSub: "You had a billion dollars. You really had a billion dollars.",
+    items: [
+      { id:'p01', e:'🎰', n:'Another Lottery Ticket',         p:2,               d:'Go again. You feel lucky.' },
+      { id:'p02', e:'🎟️', n:'Scratch-off',                    p:5,               d:'Fool me twice...' },
+      { id:'p03', e:'🥑', n:'Avocado Toast',                  p:12,              d:"This is why you couldn't afford a house." },
+      { id:'p04', e:'☕', n:'Starbucks (one drink)',           p:7,               d:'Venti, oat milk, obviously.' },
+      { id:'p05', e:'⛽', n:'A Tank of Gas',                  p:70,              d:'Remember when this was $25?' },
+      { id:'p06', e:'📺', n:'Year of Netflix',                p:180,             d:'Still nothing to watch.' },
+      { id:'p07', e:'🎧', n:'AirPods Pro',                    p:249,             d:'Lose them in 3 weeks.' },
+      { id:'p08', e:'🎮', n:'PS5',                            p:499,             d:'Finally in stock.' },
+      { id:'p09', e:'📱', n:'iPhone 16',                      p:999,             d:"You've earned it." },
+      { id:'p10', e:'🐕', n:'A Purebred Dog',                 p:3_000,           d:'Unconditional love, for a price.' },
+      { id:'p11', e:'☕', n:'Starbucks Daily (1 year)',        p:2_555,           d:'The math is dark.' },
+      { id:'p12', e:'💍', n:'Dream Wedding',                  p:30_000,          d:'One perfect day.' },
+      { id:'p13', e:'🎓', n:'Pay Off Average Student Loan',   p:37_000,          d:'The weight, lifted.' },
+      { id:'p14', e:'📚', n:'A Year of College',              p:35_000,          d:'Private, obviously.' },
+      { id:'p15', e:'🚗', n:'Tesla Model 3',                  p:40_000,          d:'You deserve it.' },
+      { id:'p16', e:'🏛️', n:'College Education (4-year)',     p:240_000,         d:'All of it, paid.' },
+      { id:'p17', e:'🏠', n:'Average US Home',                p:400_000,         d:'3 bed, 2 bath, yours.' },
+      { id:'p18', e:'🏎️', n:'Lamborghini Huracán',            p:250_000,         d:"Yes, it's yellow." },
+      { id:'p19', e:'✈️', n:'Private Jet Charter (one-way)',  p:100_000,         d:'Never fly commercial again.' },
+      { id:'p20', e:'🚘', n:'Rolls Royce Phantom',            p:460_000,         d:'Because why not.' },
+      { id:'p21', e:'🌌', n:'Space Tourism Ticket',           p:450_000,         d:'3 days in orbit.' },
+      { id:'p22', e:'⛵', n:'Entry-Level Yacht',              p:500_000,         d:'50 feet. Perfectly modest.' },
+      { id:'p23', e:'🐎', n:'Your Own Race Horse',            p:500_000,         d:'Kentucky Derby dreams.' },
+      { id:'p24', e:'🤿', n:'A Personal Submarine',           p:2_000_000,       d:'Explore the ocean floor.' },
+      { id:'p25', e:'🏙️', n:'A Manhattan Apartment',          p:2_000_000,       d:'800 sq ft. Welcome home.' },
+      { id:'p26', e:'🚽', n:'Gold Toilet',                    p:1_000_000,       d:'A classic investment.' },
+      { id:'p27', e:'🍷', n:'A Vineyard',                     p:5_000_000,       d:'Make your own wine.' },
+      { id:'p28', e:'🎸', n:'Your Own Music Festival',        p:5_000_000,       d:'Headliner TBD.' },
+      { id:'p29', e:'📣', n:'A Superbowl Ad',                 p:7_000_000,       d:'30 seconds of fame.' },
+      { id:'p30', e:'🏁', n:'A Formula 1 Car',               p:20_000_000,      d:'Not street legal.' },
+      { id:'p31', e:'🏰', n:'A Country Estate (UK)',          p:25_000_000,      d:'Hunting lodge included.' },
+      { id:'p32', e:'🏆', n:'An Oscar Film Campaign',         p:25_000_000,      d:'Just the campaign, not the Oscar.' },
+      { id:'p33', e:'🏝️', n:'A Small Private Island',         p:10_000_000,      d:'No neighbors. None.' },
+      { id:'p34', e:'🎬', n:'A Hollywood Movie',              p:50_000_000,      d:"You're the director." },
+      { id:'p35', e:'🇫🇷', n:'A Vineyard in France',          p:50_000_000,      d:'Bordeaux, naturally.' },
+      { id:'p36', e:'🌆', n:'Luxury Penthouse (NYC)',         p:85_000_000,      d:'Central Park view included.' },
+      { id:'p37', e:'✈️', n:'A Custom Private Jet',           p:90_000_000,      d:'Bedroom in the sky.' },
+      { id:'p38', e:'🏟️', n:'Stadium Naming Rights',          p:100_000_000,     d:'Your name, on everything.' },
+      { id:'p39', e:'🖼️', n:'A Picasso Painting',             p:100_000_000,     d:'Blue period, of course.' },
+      { id:'p40', e:'🎲', n:'Your Own Casino',                p:700_000_000,     d:'House always wins... for you.' },
+      { id:'p41', e:'⚽', n:'An MLS Team',                    p:500_000_000,     d:"Soccer is growing, okay?" },
+      { id:'p42', e:'🏀', n:'An NBA Team',                    p:800_000_000,     d:'Championship not included.' },
+    ]
+  }
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+
+let sc        = null;
+let items     = [];
+let remaining = 0;
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+
+function fmt(n) {
+  if (n >= 1e15) return '$' + trim((n/1e15).toFixed(1)) + ' quadrillion';
+  if (n >= 1e12) return '$' + trim((n/1e12).toFixed(3)) + 'T';
+  if (n >= 1e9)  return '$' + trim((n/1e9 ).toFixed(3)) + 'B';
+  if (n >= 1e6)  return '$' + trim((n/1e6 ).toFixed(3)) + 'M';
+  if (n >= 1e3)  return '$' + Math.round(n).toLocaleString('en-US');
+  return '$' + n.toFixed(2);
+}
+function trim(s) { return s.replace(/\.?0+$/, ''); }
+
+function fmtCount(n) {
+  if (n >= 1e9) return trim((n/1e9).toFixed(1)) + 'B';
+  if (n >= 1e6) return trim((n/1e6).toFixed(1)) + 'M';
+  if (n >= 1e3) return trim((n/1e3).toFixed(1)) + 'K';
+  return String(n);
+}
+
+// ── CORE ──────────────────────────────────────────────────────────────────────
+
+function switchScenario(id) {
+  sc = SCENARIOS.find(s => s.id === id);
+  items = sc.items.map(it => ({ ...it, count: 0 }));
+  remaining = sc.budget;
+
+  document.body.className = sc.cls;
+  document.querySelectorAll('.sc-card').forEach(t => t.classList.toggle('active', t.dataset.id === id));
+  document.getElementById('tagline').textContent = sc.tagline;
+
+  renderGrid();
+  updateHeader();
+  document.getElementById('overlay').classList.remove('open');
+}
+
+function buy(id) {
+  const it = items.find(i => i.id === id);
+  if (!it || it.impossible || it.p > remaining) return;
+  it.count++;
+  remaining = Math.round((remaining - it.p) * 1e6) / 1e6;
+  updateCard(id);
+  updateHeader('buy');
+  recheckBuyBtns();
+  checkWin();
+}
+
+function sell(id) {
+  const it = items.find(i => i.id === id);
+  if (!it || it.count === 0) return;
+  it.count--;
+  remaining = Math.round((remaining + it.p) * 1e6) / 1e6;
+  updateCard(id);
+  updateHeader('sell');
+  recheckBuyBtns();
+}
+
+function updateCard(id) {
+  const it   = items.find(i => i.id === id);
+  const card = document.getElementById('c-' + id);
+  if (!card) return;
+  const inp = card.querySelector('.qty-inp');
+  if (document.activeElement !== inp) inp.value = it.count;
+  inp.classList.toggle('nonzero', it.count > 0);
+  card.querySelector('.btn-sell').disabled = it.count === 0;
+  card.classList.toggle('owned', it.count > 0);
+}
+
+function setQty(id, rawVal) {
+  const it = items.find(i => i.id === id);
+  if (!it || it.impossible) return;
+  let desired = Math.max(0, Math.floor(Number(rawVal)) || 0);
+  const delta = desired - it.count;
+  if (delta > 0) {
+    const canBuy = Math.floor(remaining / it.p);
+    desired = it.count + Math.min(delta, canBuy);
+  }
+  const actual = desired - it.count;
+  if (actual === 0) { updateCard(id); return; }
+  remaining = Math.round((remaining - actual * it.p) * 1e6) / 1e6;
+  it.count = desired;
+  updateCard(id);
+  updateHeader(actual > 0 ? 'buy' : 'sell');
+  recheckBuyBtns();
+  if (actual > 0) checkWin();
+}
+
+function recheckBuyBtns() {
+  items.forEach(it => {
+    const card = document.getElementById('c-' + it.id);
+    if (!card) return;
+    const canBuy = !it.impossible && it.p <= remaining;
+    card.querySelector('.btn-buy').disabled = !canBuy;
+    if (!it.impossible) card.classList.toggle('broke', !canBuy && it.count === 0);
+  });
+}
+
+function updateHeader(flash) {
+  const el = document.getElementById('bal');
+  el.textContent = fmt(remaining);
+  if (flash) {
+    el.classList.remove('flash-buy', 'flash-sell');
+    void el.offsetWidth;
+    el.classList.add(flash === 'buy' ? 'flash-buy' : 'flash-sell');
+  }
+  const spent = sc.budget - remaining;
+  const pct   = Math.min(100, (spent / sc.budget) * 100);
+  document.getElementById('spent-display').textContent = fmt(spent);
+  document.getElementById('pfill').style.width = pct + '%';
+}
+
+function checkWin() {
+  const affordable = items.filter(i => !i.impossible);
+  const cheapest   = Math.min(...affordable.map(i => i.p));
+  if (remaining < cheapest) openSummary(true);
+}
+
+// ── SUMMARY / OVERLAY ─────────────────────────────────────────────────────────
+
+function openSummary(isEnd) {
+  const bought = items.filter(i => i.count > 0);
+  const spent  = sc.budget - remaining;
+
+  document.getElementById('mtitle').textContent = isEnd
+    ? sc.endTitle
+    : (bought.length === 0 ? "🤔 Nothing bought yet!" : "📋 Your Spending Summary");
+
+  document.getElementById('msub').textContent = isEnd
+    ? sc.endSub
+    : (bought.length === 0
+        ? "Go spend some money!"
+        : fmt(spent) + " spent of " + fmt(sc.budget));
+
+  const receipt = document.getElementById('receipt');
+  receipt.innerHTML = '';
+
+  if (bought.length === 0) {
+    receipt.innerHTML = '<div class="receipt-empty">Your cart is empty. Get shopping!</div>';
+  } else {
+    bought.forEach(it => {
+      const row = document.createElement('div');
+      row.className = 'receipt-row';
+      row.innerHTML =
+        `<div class="receipt-name"><span>${it.e}</span><span>${it.count > 1 ? fmtCount(it.count) + '× ' : ''}${it.n}</span></div>` +
+        `<div class="receipt-total">${fmt(it.count * it.p)}</div>`;
+      receipt.appendChild(row);
+    });
+    const total = document.createElement('div');
+    total.className = 'receipt-row';
+    total.innerHTML = `<div>Total spent</div><div class="receipt-total">${fmt(spent)}</div>`;
+    receipt.appendChild(total);
+  }
+
+  document.getElementById('overlay').classList.add('open');
+}
+
+function overlayClick(e) {
+  if (e.target === document.getElementById('overlay'))
+    document.getElementById('overlay').classList.remove('open');
+}
+
+function closeOverlay() { document.getElementById('overlay').classList.remove('open'); }
+
+function resetCurrent() { switchScenario(sc.id); }
+
+// ── RENDER GRID ───────────────────────────────────────────────────────────────
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  items.forEach(it => {
+    const card = document.createElement('div');
+    card.className = 'card' + (it.impossible ? ' impossible broke' : '');
+    card.id = 'c-' + it.id;
+    card.innerHTML =
+      `<div class="card-emoji">${it.e}</div>` +
+      `<div class="card-name">${it.n}</div>` +
+      `<div class="card-price">${fmt(it.p)}${it.impossible ? '<span class="impossible-badge">impossible</span>' : ''}</div>` +
+      `<div class="card-desc">${it.d}</div>` +
+      `<div class="card-controls">` +
+        `<button class="btn-q btn-sell" onclick="sell('${it.id}')" disabled>−</button>` +
+        `<input type="number" class="qty-inp" value="0" min="0"` +
+          ` onchange="setQty('${it.id}',this.value)"` +
+          ` onblur="setQty('${it.id}',this.value)"` +
+          ` onfocus="this.select()">` +
+        `<button class="btn-q btn-buy" onclick="buy('${it.id}')"${it.impossible ? ' disabled' : ''}>+</button>` +
+      `</div>`;
+    grid.appendChild(card);
+  });
+  recheckBuyBtns();
+  updateHeader();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+
+switchScenario('elon');
+</script>
+</body>
+</html>
