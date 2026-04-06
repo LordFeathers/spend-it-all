@@ -204,6 +204,7 @@
       color: var(--accent);
       font-variant-numeric: tabular-nums;
       transition: color 0.35s;
+      word-break: break-all;
     }
     .card-desc {
       font-size: 0.72rem;
@@ -509,7 +510,6 @@ const SCENARIOS = [
     endSub: "Didn't fix a thing. Felt incredible though.",
     items: [
       { id:'d01', e:'🎰', n:'A Scratch-off Ticket',           p:1,                               d:'1-in-4 chance of winning $2.' },
-      { id:'d02', e:'☕', n:'A Coffee',                        p:5,                               d:'Not even the fancy kind.' },
       { id:'d03', e:'🍟', n:'Happy Meal',                     p:7,                               d:'The toy is worth more.' },
       { id:'d04', e:'📺', n:'Monthly Streaming Bundle',       p:50,                              d:'All of them. Still nothing to watch.' },
       { id:'d05', e:'⛽', n:'A Tank of Gas',                  p:70,                              d:'Remember when this was $25?' },
@@ -560,26 +560,18 @@ const SCENARIOS = [
     endSub: "You had a billion dollars. You really had a billion dollars.",
     items: [
       { id:'p01', e:'🎰', n:'Another Lottery Ticket',         p:2,               d:'Go again. You feel lucky.' },
-      { id:'p02', e:'🎟️', n:'Scratch-off',                    p:5,               d:'Fool me twice...' },
       { id:'p03', e:'🥑', n:'Avocado Toast',                  p:12,              d:"This is why you couldn't afford a house." },
       { id:'p04', e:'☕', n:'Starbucks (one drink)',           p:7,               d:'Venti, oat milk, obviously.' },
-      { id:'p05', e:'⛽', n:'A Tank of Gas',                  p:70,              d:'Remember when this was $25?' },
-      { id:'p06', e:'📺', n:'Year of Netflix',                p:180,             d:'Still nothing to watch.' },
       { id:'p07', e:'🎧', n:'AirPods Pro',                    p:249,             d:'Lose them in 3 weeks.' },
-      { id:'p08', e:'🎮', n:'PS5',                            p:499,             d:'Finally in stock.' },
       { id:'p09', e:'📱', n:'iPhone 16',                      p:999,             d:"You've earned it." },
       { id:'p10', e:'🐕', n:'A Purebred Dog',                 p:3_000,           d:'Unconditional love, for a price.' },
       { id:'p11', e:'☕', n:'Starbucks Daily (1 year)',        p:2_555,           d:'The math is dark.' },
       { id:'p12', e:'💍', n:'Dream Wedding',                  p:30_000,          d:'One perfect day.' },
       { id:'p13', e:'🎓', n:'Pay Off Average Student Loan',   p:37_000,          d:'The weight, lifted.' },
-      { id:'p14', e:'📚', n:'A Year of College',              p:35_000,          d:'Private, obviously.' },
       { id:'p15', e:'🚗', n:'Tesla Model 3',                  p:40_000,          d:'You deserve it.' },
       { id:'p16', e:'🏛️', n:'College Education (4-year)',     p:240_000,         d:'All of it, paid.' },
-      { id:'p17', e:'🏠', n:'Average US Home',                p:400_000,         d:'3 bed, 2 bath, yours.' },
       { id:'p18', e:'🏎️', n:'Lamborghini Huracán',            p:250_000,         d:"Yes, it's yellow." },
-      { id:'p19', e:'✈️', n:'Private Jet Charter (one-way)',  p:100_000,         d:'Never fly commercial again.' },
       { id:'p20', e:'🚘', n:'Rolls Royce Phantom',            p:460_000,         d:'Because why not.' },
-      { id:'p21', e:'🌌', n:'Space Tourism Ticket',           p:450_000,         d:'3 days in orbit.' },
       { id:'p22', e:'⛵', n:'Entry-Level Yacht',              p:500_000,         d:'50 feet. Perfectly modest.' },
       { id:'p23', e:'🐎', n:'Your Own Race Horse',            p:500_000,         d:'Kentucky Derby dreams.' },
       { id:'p24', e:'🤿', n:'A Personal Submarine',           p:2_000_000,       d:'Explore the ocean floor.' },
@@ -587,7 +579,6 @@ const SCENARIOS = [
       { id:'p26', e:'🚽', n:'Gold Toilet',                    p:1_000_000,       d:'A classic investment.' },
       { id:'p27', e:'🍷', n:'A Vineyard',                     p:5_000_000,       d:'Make your own wine.' },
       { id:'p28', e:'🎸', n:'Your Own Music Festival',        p:5_000_000,       d:'Headliner TBD.' },
-      { id:'p29', e:'📣', n:'A Superbowl Ad',                 p:7_000_000,       d:'30 seconds of fame.' },
       { id:'p30', e:'🏁', n:'A Formula 1 Car',               p:20_000_000,      d:'Not street legal.' },
       { id:'p31', e:'🏰', n:'A Country Estate (UK)',          p:25_000_000,      d:'Hunting lodge included.' },
       { id:'p32', e:'🏆', n:'An Oscar Film Campaign',         p:25_000_000,      d:'Just the campaign, not the Oscar.' },
@@ -600,7 +591,6 @@ const SCENARIOS = [
       { id:'p39', e:'🖼️', n:'A Picasso Painting',             p:100_000_000,     d:'Blue period, of course.' },
       { id:'p40', e:'🎲', n:'Your Own Casino',                p:700_000_000,     d:'House always wins... for you.' },
       { id:'p41', e:'⚽', n:'An MLS Team',                    p:500_000_000,     d:"Soccer is growing, okay?" },
-      { id:'p42', e:'🏀', n:'An NBA Team',                    p:800_000_000,     d:'Championship not included.' },
     ]
   }
 ];
@@ -637,7 +627,10 @@ function fmtCount(n) {
 
 function switchScenario(id) {
   sc = SCENARIOS.find(s => s.id === id);
-  items = sc.items.map(it => ({ ...it, count: 0 }));
+  items = SCENARIOS.flatMap(s => s.items)
+    .sort((a, b) => a.p - b.p)
+    .filter((it, idx, arr) => arr.findIndex(x => x.n === it.n) === idx)
+    .map(it => ({ ...it, count: 0 }));
   remaining = sc.budget;
 
   document.body.className = sc.cls;
@@ -794,7 +787,7 @@ function renderGrid() {
     card.innerHTML =
       `<div class="card-emoji">${it.e}</div>` +
       `<div class="card-name">${it.n}</div>` +
-      `<div class="card-price">${fmt(it.p)}${it.impossible ? '<span class="impossible-badge">impossible</span>' : ''}</div>` +
+      `<div class="card-price">${fmtFull(it.p)}</div>` +
       `<div class="card-desc">${it.d}</div>` +
       `<div class="card-controls">` +
         `<button class="btn-q btn-sell" onclick="sell('${it.id}')" disabled>−</button>` +
