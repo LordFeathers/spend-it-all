@@ -57,8 +57,12 @@
       user-select: none;
       line-height: 1;
       white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
     }
     .site-title:hover { opacity: 0.7; }
+    .title-emoji { font-size: 1.4em; line-height: 1; display: inline-block; }
     .balance-stats {
       display: flex;
       align-items: center;
@@ -68,7 +72,7 @@
     }
     .stat { text-align: center; line-height: 1; }
     .stat-num {
-      font-size: 2.6rem;
+      font-size: clamp(1.1rem, 4.5vw, 2.6rem);
       font-weight: 900;
       letter-spacing: -0.04em;
       color: var(--accent);
@@ -77,7 +81,7 @@
       line-height: 1;
     }
     .stat-num.stat-spent {
-      font-size: 2rem;
+      font-size: clamp(0.9rem, 3.5vw, 2rem);
       color: var(--text-muted);
     }
     .stat-lbl {
@@ -174,7 +178,7 @@
       transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s, opacity 0.2s, filter 0.2s;
       position: relative;
     }
-    .card:not(.impossible):not(.broke):hover {
+    .card:not(.impossible):not(.broke):not(.maxed):hover {
       border-color: var(--accent);
       transform: translateY(-2px);
       box-shadow: 0 6px 24px var(--accent-dim);
@@ -185,6 +189,7 @@
     }
     .card.broke { opacity: 0.38; filter: grayscale(0.6); }
     .card.impossible { opacity: 0.28; cursor: default; }
+    .card.maxed { opacity: 0.45; filter: grayscale(0.7); }
 
     .card-emoji { font-size: 2.25rem; line-height: 1; }
     .card-name {
@@ -369,8 +374,10 @@
 
     /* ── RESPONSIVE ──────────────────────────────────────── */
     @media (max-width: 600px) {
-      .header-inner { padding: 0.5rem 0.85rem; }
-      .site-title { font-size: 1rem; }
+      .header-inner { padding: 0.75rem 1rem 0.65rem; }
+      .header-top { display: block; margin-bottom: 0.55rem; }
+      .site-title { font-size: 1.35rem; width: 100%; justify-content: center; }
+      .title-emoji { font-size: 1.5em; }
       .balance-num { font-size: 1.45rem; }
       .sc-name { font-size: 0.65rem; }
       .main { padding: 1rem; }
@@ -386,7 +393,7 @@
 <header>
   <div class="header-inner">
     <div class="header-top">
-      <div class="site-title" onclick="resetCurrent()">💸 Spend It All</div>
+      <div class="site-title" onclick="resetCurrent()"><span class="title-emoji">💸</span><span>Spend It All</span></div>
     </div>
     <div class="scenario-picker">
       <button class="sc-card active" data-id="elon" onclick="switchScenario('elon')">
@@ -482,15 +489,15 @@ const SCENARIOS = [
       { id:'e29', e:'⚛️', n:'A Nuclear Submarine',            p:3_400_000_000,     d:'For peaceful purposes.' },
       { id:'e30', e:'💻', n:'AI Supercomputer (Colossus)',    p:4_000_000_000,     d:'100,000 GPUs. For vibes.' },
       { id:'e31', e:'🏭', n:'Tesla Gigafactory',              p:5_000_000_000,     d:'Make your own EVs.' },
-      { id:'e32', e:'🕳️', n:'The Boring Company',             p:5_700_000_000,     d:'Dig it.' },
+      { id:'e32', e:'🕳️', n:'The Boring Company',             p:5_700_000_000,     d:'Dig it.',                              maxQty:1 },
       { id:'e33', e:'🚄', n:'Hyperloop Prototype',            p:6_000_000_000,     d:'Still faster than LA traffic.' },
       { id:'e34', e:'🏗️', n:'SpaceX Starbase',               p:1_000_000_000,     d:'Your very own launchpad.' },
-      { id:'e35', e:'🛰️', n:'Starlink Constellation',         p:10_000_000_000,    d:'5,000+ satellites. All yours.' },
-      { id:'e36', e:'🌍', n:'Tesla Gigafactory Network',      p:20_000_000_000,    d:'All 5 of them.' },
-      { id:'e37', e:'🧬', n:'xAI (whole company)',            p:40_000_000_000,    d:'Grok included.' },
-      { id:'e38', e:'🐦', n:'Twitter/X (whole thing)',        p:44_000_000_000,    d:'Was worth $44B. Maybe.' },
-      { id:'e39', e:'🏗️', n:'All Tesla Factories',            p:15_000_000_000,    d:'Vertical integration perfected.' },
-      { id:'e40', e:'🔴', n:'Buy Mars',                       p:199_000_000_000,   d:"He's basically already claimed it." },
+      { id:'e35', e:'🛰️', n:'Starlink Constellation',         p:10_000_000_000,    d:'5,000+ satellites. All yours.',        maxQty:1 },
+      { id:'e36', e:'🌍', n:'Tesla Gigafactory Network',      p:20_000_000_000,    d:'All 5 of them.',                       maxQty:1 },
+      { id:'e37', e:'🧬', n:'xAI (whole company)',            p:40_000_000_000,    d:'Grok included.',                       maxQty:1 },
+      { id:'e38', e:'🐦', n:'Twitter/X (whole thing)',        p:44_000_000_000,    d:'Was worth $44B. Maybe.',               maxQty:1 },
+      { id:'e39', e:'🏗️', n:'All Tesla Factories',            p:15_000_000_000,    d:'Vertical integration perfected.',      maxQty:1 },
+      { id:'e40', e:'🔴', n:'Buy Mars',                       p:199_000_000_000,   d:"He's basically already claimed it.",   maxQty:1 },
     ]
   },
   {
@@ -514,33 +521,33 @@ const SCENARIOS = [
       { id:'d11', e:'📣', n:'Superbowl Ad (30 sec)',          p:7_000_000,                       d:'30 seconds. $7 million. Worth it?' },
       { id:'d12', e:'✈️', n:'F-35 Fighter Jet',               p:80_000_000,                      d:"America's most expensive oopsie." },
       { id:'d13', e:'🛫', n:'Air Force One',                  p:660_000_000,                     d:'Comes with a pilot.' },
-      { id:'d14', e:'🧱', n:'Build a Border Wall',            p:25_000_000_000,                  d:'(Mexico not paying.)' },
+      { id:'d14', e:'🧱', n:'Build a Border Wall',            p:25_000_000_000,                  d:'(Mexico not paying.)',             maxQty:1 },
       { id:'d15', e:'🚀', n:'NASA Annual Budget',             p:25_000_000_000,                  d:'The whole year.' },
       { id:'d16', e:'⚓', n:'Aircraft Carrier (Gerald Ford)', p:13_000_000_000,                  d:"The world's most expensive boat." },
       { id:'d17', e:'🌕', n:'A Moon Base',                    p:10_000_000_000,                  d:'Artemis has entered the chat.' },
       { id:'d18', e:'🔴', n:'A Mars Mission',                 p:100_000_000_000,                 d:'One-way ticket extra.' },
-      { id:'d19', e:'📱', n:'Buy TikTok',                     p:50_000_000_000,                  d:'Still banned, probably.' },
-      { id:'d20', e:'🧊', n:'Buy Greenland',                  p:12_500_000_000,                  d:'Trump tried. You can too.' },
-      { id:'d21', e:'🛸', n:'International Space Station',    p:150_000_000_000,                 d:'25 years of assembly.' },
+      { id:'d19', e:'📱', n:'Buy TikTok',                     p:50_000_000_000,                  d:'Still banned, probably.',          maxQty:1 },
+      { id:'d20', e:'🧊', n:'Buy Greenland',                  p:12_500_000_000,                  d:'Trump tried. You can too.',        maxQty:1 },
+      { id:'d21', e:'🛸', n:'International Space Station',    p:150_000_000_000,                 d:'25 years of assembly.',            maxQty:1 },
       { id:'d22', e:'💊', n:'Cure Malaria Globally',          p:90_000_000_000,                  d:'Actually worth it.' },
       { id:'d23', e:'🌾', n:'End World Hunger (1 year)',      p:330_000_000_000,                 d:'$330B. We have the money.' },
       { id:'d24', e:'🌳', n:'Plant 1 Trillion Trees',         p:300_000_000_000,                 d:'The math checks out.' },
-      { id:'d25', e:'🎓', n:'All US Student Debt',            p:1_700_000_000_000,               d:'45 million people relieved.' },
-      { id:'d26', e:'🏥', n:'All US Medical Debt',            p:195_000_000_000,                 d:'Gone. Just like that.' },
-      { id:'d27', e:'💳', n:'All US Credit Card Debt',        p:1_100_000_000_000,               d:'Freedom from minimum payments.' },
+      { id:'d25', e:'🎓', n:'All US Student Debt',            p:1_700_000_000_000,               d:'45 million people relieved.',      maxQty:1 },
+      { id:'d26', e:'🏥', n:'All US Medical Debt',            p:195_000_000_000,                 d:'Gone. Just like that.',            maxQty:1 },
+      { id:'d27', e:'💳', n:'All US Credit Card Debt',        p:1_100_000_000_000,               d:'Freedom from minimum payments.',   maxQty:1 },
       { id:'d28', e:'🎖️', n:'US Military (1 year)',           p:886_000_000_000,                 d:'Jets, ships, the works.' },
       { id:'d29', e:'🛣️', n:'Fix All US Roads',               p:786_000_000_000,                 d:'No more potholes.' },
-      { id:'d30', e:'🚀', n:'Buy SpaceX',                     p:150_000_000_000,                 d:'Rockets included.' },
+      { id:'d30', e:'🚀', n:'Buy SpaceX',                     p:150_000_000_000,                 d:'Rockets included.',               maxQty:1 },
       { id:'d31', e:'🌌', n:'Fund NASA for 100 Years',        p:2_500_000_000_000,               d:'To infinity, and beyond.' },
       { id:'d32', e:'💰', n:'Universal Basic Income (1 yr)',  p:3_000_000_000_000,               d:'$1K/month for every American.' },
       { id:'d33', e:'🏨', n:'Universal Healthcare (10 yrs)', p:3_500_000_000_000,               d:'Free checkups for a decade.' },
-      { id:'d34', e:'🍎', n:'Buy Apple (whole company)',      p:3_400_000_000_000,               d:'Tim Cook not included.' },
-      { id:'d35', e:'🔍', n:'Buy All of Google',              p:2_000_000_000_000,               d:'Still no dark mode on Docs.' },
-      { id:'d36', e:'📦', n:'All Amazon Stock',               p:1_800_000_000_000,               d:'Prime for everyone.' },
+      { id:'d34', e:'🍎', n:'Buy Apple (whole company)',      p:3_400_000_000_000,               d:'Tim Cook not included.',           maxQty:1 },
+      { id:'d35', e:'🔍', n:'Buy All of Google',              p:2_000_000_000_000,               d:'Still no dark mode on Docs.',      maxQty:1 },
+      { id:'d36', e:'📦', n:'All Amazon Stock',               p:1_800_000_000_000,               d:'Prime for everyone.',              maxQty:1 },
       { id:'d37', e:'🛤️', n:'US Interstate Highway System',  p:530_000_000_000,                 d:'48,000 miles of road.' },
-      { id:'d38', e:'🌽', n:'Buy All US Farmland',            p:2_700_000_000_000,               d:'Every acre.' },
-      { id:'d39', e:'🥇', n:"World's Entire Gold Supply",    p:13_000_000_000_000,              d:'Every ounce ever mined.' },
-      { id:'d40', e:'📈', n:'All of Wall Street',             p:40_000_000_000_000,              d:'Buy the market. Be the market.' },
+      { id:'d38', e:'🌽', n:'Buy All US Farmland',            p:2_700_000_000_000,               d:'Every acre.',                      maxQty:1 },
+      { id:'d39', e:'🥇', n:"World's Entire Gold Supply",    p:13_000_000_000_000,              d:'Every ounce ever mined.',          maxQty:1 },
+      { id:'d40', e:'📈', n:'All of Wall Street',             p:40_000_000_000_000,              d:'Buy the market. Be the market.',   maxQty:1 },
       { id:'d41', e:'💀', n:'Death Star (NASA estimate)',     p:852_000_000_000_000_000,         d:'You cannot afford this. Nobody can.', impossible:true },
     ]
   },
@@ -614,6 +621,9 @@ function fmt(n) {
   if (n >= 1e3)  return '$' + Math.round(n).toLocaleString('en-US');
   return '$' + n.toFixed(2);
 }
+function fmtFull(n) {
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
 function trim(s) { return s.replace(/\.?0+$/, ''); }
 
 function fmtCount(n) {
@@ -642,6 +652,7 @@ function switchScenario(id) {
 function buy(id) {
   const it = items.find(i => i.id === id);
   if (!it || it.impossible || it.p > remaining) return;
+  if (it.maxQty != null && it.count >= it.maxQty) return;
   it.count++;
   remaining = Math.round((remaining - it.p) * 1e6) / 1e6;
   updateCard(id);
@@ -669,12 +680,14 @@ function updateCard(id) {
   inp.classList.toggle('nonzero', it.count > 0);
   card.querySelector('.btn-sell').disabled = it.count === 0;
   card.classList.toggle('owned', it.count > 0);
+  card.classList.toggle('maxed', it.maxQty != null && it.count >= it.maxQty);
 }
 
 function setQty(id, rawVal) {
   const it = items.find(i => i.id === id);
   if (!it || it.impossible) return;
   let desired = Math.max(0, Math.floor(Number(rawVal)) || 0);
+  if (it.maxQty != null) desired = Math.min(desired, it.maxQty);
   const delta = desired - it.count;
   if (delta > 0) {
     const canBuy = Math.floor(remaining / it.p);
@@ -694,7 +707,8 @@ function recheckBuyBtns() {
   items.forEach(it => {
     const card = document.getElementById('c-' + it.id);
     if (!card) return;
-    const canBuy = !it.impossible && it.p <= remaining;
+    const atMax = it.maxQty != null && it.count >= it.maxQty;
+    const canBuy = !it.impossible && !atMax && it.p <= remaining;
     card.querySelector('.btn-buy').disabled = !canBuy;
     if (!it.impossible) card.classList.toggle('broke', !canBuy && it.count === 0);
   });
@@ -702,7 +716,7 @@ function recheckBuyBtns() {
 
 function updateHeader(flash) {
   const el = document.getElementById('bal');
-  el.textContent = fmt(remaining);
+  el.textContent = fmtFull(remaining);
   if (flash) {
     el.classList.remove('flash-buy', 'flash-sell');
     void el.offsetWidth;
@@ -710,7 +724,7 @@ function updateHeader(flash) {
   }
   const spent = sc.budget - remaining;
   const pct   = Math.min(100, (spent / sc.budget) * 100);
-  document.getElementById('spent-display').textContent = fmt(spent);
+  document.getElementById('spent-display').textContent = fmtFull(spent);
   document.getElementById('pfill').style.width = pct + '%';
 }
 
