@@ -787,7 +787,7 @@ function renderGrid() {
     card.innerHTML =
       `<div class="card-emoji">${it.e}</div>` +
       `<div class="card-name">${it.n}</div>` +
-      `<div class="card-price">${fmtFull(it.p)}</div>` +
+      `<div class="card-price">${fmt(it.p)}</div>` +
       `<div class="card-desc">${it.d}</div>` +
       `<div class="card-controls">` +
         `<button class="btn-q btn-sell" onclick="sell('${it.id}')" disabled>−</button>` +
