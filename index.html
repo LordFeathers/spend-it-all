@@ -4,134 +4,251 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spend It All</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     :root {
       --accent: #00d4ff;
-      --accent-dim: rgba(0,212,255,0.12);
-      --accent-glow: rgba(0,212,255,0.25);
-      --bg: #07090f;
-      --surface: #0d1117;
-      --surface2: #161b27;
-      --border: rgba(255,255,255,0.07);
-      --border-hover: rgba(255,255,255,0.15);
-      --text: #e2e8f0;
-      --text-muted: #64748b;
-      --text-dim: #2d3748;
+      --accent-dim: rgba(0,212,255,0.10);
+      --bg: #0a0a0f;
+      --bg-warm: #0d0d14;
+      --surface: #111118;
+      --surface-solid: #111118;
+      --surface2: #1a1a24;
+      --surface3: #22222e;
+      --border: rgba(255,255,255,0.08);
+      --border-hover: rgba(255,255,255,0.18);
+      --text: #e0e0e8;
+      --text-muted: #6a6a80;
+      --text-dim: #33334a;
+      --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
     }
-    body.s-debt    { --accent:#ff4d4d; --accent-dim:rgba(255,77,77,.12); --accent-glow:rgba(255,77,77,.25); }
-    body.s-powerball{ --accent:#ffd700; --accent-dim:rgba(255,215,0,.12); --accent-glow:rgba(255,215,0,.25); }
+
+    /* ── SCENARIO THEMES ─────────────────────── */
+    body.s-elon     { --accent:#00d4ff; --accent-dim:rgba(0,212,255,.10); }
+    body.s-debt     { --accent:#ff5c5c; --accent-dim:rgba(255,92,92,.10); }
+    body.s-powerball{ --accent:#ffcc00; --accent-dim:rgba(255,204,0,.10); }
 
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      font-family: var(--font-body);
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
-    /* ── HEADER ─────────────────────────────────────────── */
+    /* Subtle scanline overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,0.008) 2px,
+        rgba(255,255,255,0.008) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* ── HEADER / HUD ────────────────────────── */
     header {
       position: sticky;
       top: 0;
       z-index: 50;
-      background: rgba(7,9,15,0.92);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      border-bottom: 2px solid var(--accent);
     }
     .header-inner {
-      max-width: 1400px;
+      max-width: 1600px;
       margin: 0 auto;
-      padding: 1rem 1.5rem 0.85rem;
-    }
-    .header-top { margin-bottom: 0.6rem; }
-    .site-title {
-      font-size: 1.75rem;
-      font-weight: 900;
-      letter-spacing: -0.04em;
-      color: var(--accent);
-      transition: color 0.35s, opacity 0.15s;
-      cursor: pointer;
-      user-select: none;
-      line-height: 1;
-      white-space: nowrap;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-    }
-    .site-title:hover { opacity: 0.7; }
-    .title-emoji { font-size: 1.4em; line-height: 1; display: inline-block; }
-    .balance-stats {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 1.5rem;
-      margin: 1rem 0 0.55rem;
-    }
-    .stat { text-align: center; line-height: 1; }
-    .stat-num {
-      font-size: clamp(1.1rem, 4.5vw, 2.6rem);
-      font-weight: 900;
-      letter-spacing: -0.04em;
-      color: var(--accent);
-      font-variant-numeric: tabular-nums;
-      transition: color 0.35s;
-      line-height: 1;
-    }
-    .stat-num.stat-spent {
-      font-size: clamp(0.9rem, 3.5vw, 2rem);
-      color: var(--text-muted);
-    }
-    .stat-lbl {
-      font-size: 0.65rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.09em;
-      margin-top: 0.2rem;
-    }
-    .stat-divider {
-      width: 1px;
-      height: 2.5rem;
-      background: var(--border);
-      flex-shrink: 0;
+      padding: 0;
     }
 
-    /* Scenario cards — compact horizontal pills */
-    .scenario-picker {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 0.4rem;
-      margin-bottom: 0.5rem;
+    /* Single-line HUD bar */
+    .header-bar {
+      display: flex;
+      align-items: center;
+      height: 52px;
+      padding: 0 1rem;
+      gap: 0;
     }
-    .sc-card {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.5rem 0.5rem;
+
+    /* Logo block */
+    .hud-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
       cursor: pointer;
-      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-      font-family: inherit;
+      user-select: none;
+      padding-right: 0.75rem;
+      border-right: 1px solid var(--border);
+      height: 100%;
+      transition: opacity 0.15s;
+    }
+    .hud-logo:hover { opacity: 0.7; }
+    .hud-logo-icon {
+      font-size: 1.3rem;
+      line-height: 1;
+    }
+    .hud-logo-text {
+      font-size: 1rem;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+      white-space: nowrap;
+      text-transform: uppercase;
+      transition: color 0.35s;
+    }
+
+    /* Menu button */
+    .btn-menu {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      height: 100%;
+      padding: 0 0.85rem;
+      border: none;
+      border-right: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font: 700 0.65rem/1 var(--font-body);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-menu:hover {
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .btn-menu-icon {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .btn-menu-icon span {
+      display: block;
+      width: 14px;
+      height: 1.5px;
+      background: currentColor;
+    }
+
+    /* Scenario label */
+    .sc-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 0 1rem;
+      white-space: nowrap;
+      border-right: 1px solid var(--border);
+      height: 100%;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Stats section */
+    .hud-stats {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      flex-shrink: 0;
+    }
+    .hud-stat {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0 1rem;
+      height: 100%;
+      border-right: 1px solid var(--border);
+    }
+    .hud-stat-lbl {
+      font-size: 0.55rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .hud-stat-val {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+      transition: color 0.35s;
+    }
+    .hud-stat-val.stat-spent {
+      color: var(--text-muted);
+    }
+
+    /* Spacer */
+    .hud-spacer { flex: 1; }
+
+    /* Summary button in header */
+    .btn-summary {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      height: 100%;
+      padding: 0 1rem;
+      border: none;
+      border-left: 1px solid var(--border);
+      border-right: 1px solid var(--border);
+      background: transparent;
+      color: var(--text-muted);
+      font: 700 0.65rem/1 var(--font-body);
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      transition: color 0.15s, background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-summary:hover {
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .btn-summary-icon {
+      font-size: 0.85rem;
+    }
+
+    /* Mute button */
+    .btn-mute {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.35rem;
+      height: 100%;
+      width: 48px;
+      border: none;
+      border-left: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      color: var(--text-muted);
+      transition: color 0.15s, background 0.15s;
+      padding: 0;
     }
-    .sc-card:hover { border-color: var(--accent); background: var(--accent-dim); }
-    .sc-card.active {
-      border-color: var(--accent);
+    .btn-mute:hover {
+      color: var(--accent);
       background: var(--accent-dim);
-      box-shadow: 0 0 10px var(--accent-glow);
     }
-    .sc-emoji { font-size: 1.2rem; line-height: 1; }
-    .sc-name { font-size: 0.85rem; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sc-card.active .sc-name { color: var(--accent); }
-    .sc-budget { display: none; }
-    .tagline { display: none; }
+
+    /* ── PROGRESS BAR ────────────────────────── */
     .progress-track {
-      margin-top: 0.6rem;
-      height: 5px;
+      height: 3px;
       background: var(--surface2);
       border-radius: 9999px;
       overflow: hidden;
@@ -141,65 +258,276 @@
       width: 0%;
       background: var(--accent);
       border-radius: 9999px;
-      transition: width 0.35s ease, background 0.35s;
-    }
-    .progress-lbl {
-      margin-top: 0.3rem;
-      font-size: 0.72rem;
-      color: var(--text-muted);
+      transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s;
     }
 
     @keyframes flashBuy  { 0%,100%{color:var(--accent)} 40%{color:#ff5555} }
     @keyframes flashSell { 0%,100%{color:var(--accent)} 40%{color:#4ade80} }
-    .flash-buy  { animation: flashBuy  0.35s ease; }
-    .flash-sell { animation: flashSell 0.35s ease; }
+    .flash-buy  { animation: flashBuy  0.4s ease; }
+    .flash-sell { animation: flashSell 0.4s ease; }
 
-    /* ── GRID ───────────────────────────────────────────── */
-    .main {
-      max-width: 1400px;
-      margin: 0 auto;
+    /* ── INTRO SCREEN ────────────────────────── */
+    .intro {
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 1.5rem;
+      opacity: 1;
+      transition: opacity 0.4s ease, visibility 0.4s;
+      overflow: hidden;
+    }
+    .intro.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    /* Crosshair grid background */
+    .intro::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 80px 80px;
+      pointer-events: none;
+    }
+    .intro::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      border: 1px solid rgba(255,255,255,0.03);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    /* Floating particles */
+    .intro-particles {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      font-size: 1.5rem;
+      opacity: 0.06;
+      animation: floatUp linear infinite;
+      will-change: transform;
+    }
+    @keyframes floatUp {
+      0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.06; }
+      90% { opacity: 0.06; }
+      100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+    }
+
+    .intro-inner {
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .intro-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      padding: 0.45rem 1rem;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 1.5rem;
+    }
+    .intro-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4ade80;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .intro-title {
+      font-size: clamp(2.5rem, 8vw, 4.2rem);
+      font-weight: 900;
+      letter-spacing: -0.06em;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+    .intro-title-accent {
+      color: var(--accent);
+    }
+
+    .intro-sub {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+      font-weight: 500;
+    }
+
+    .intro-options-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      margin-bottom: 0.75rem;
+    }
+
+    .intro-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .intro-opt {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: inherit;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      position: relative;
+    }
+    .intro-opt:hover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .intro-opt:active { transform: scale(0.995); }
+
+    .intro-opt-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .intro-opt:hover .intro-opt-icon {
+      border-color: var(--accent);
+    }
+    .intro-opt-text { flex: 1; min-width: 0; }
+    .intro-opt-name {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 0.15rem;
+      letter-spacing: -0.01em;
+    }
+    .intro-opt-detail {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+    .intro-opt-budget {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: var(--accent);
+      flex-shrink: 0;
+      transition: color 0.35s;
+    }
+
+    .intro-opt[data-id="elon"]:hover { --accent: #00d4ff; --accent-dim: rgba(0,212,255,0.10); }
+    .intro-opt[data-id="debt"]:hover { --accent: #ff5c5c; --accent-dim: rgba(255,92,92,0.10); }
+    .intro-opt[data-id="powerball"]:hover { --accent: #ffcc00; --accent-dim: rgba(255,204,0,0.10); }
+
+    .intro-footer {
+      margin-top: 2rem;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+    }
+
+    /* ── GRID ────────────────────────────────── */
+    .main {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 1.25rem;
+      position: relative;
+      z-index: 1;
     }
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
-      gap: 0.85rem;
+      gap: 0.6rem;
     }
 
-    /* ── CARD ───────────────────────────────────────────── */
+    /* ── CARD ────────────────────────────────── */
     .card {
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 1.1rem;
+      border-radius: 10px;
+      padding: 1rem;
       display: flex;
       flex-direction: column;
-      gap: 0.4rem;
-      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s, opacity 0.2s, filter 0.2s;
+      gap: 0.3rem;
+      transition: all 0.15s ease;
       position: relative;
     }
+
     .card:not(.impossible):not(.broke):not(.maxed):hover {
-      border-color: var(--accent);
-      transform: translateY(-2px);
-      box-shadow: 0 6px 24px var(--accent-dim);
+      background: var(--surface2);
+      border-color: var(--border-hover);
     }
+
     .card.owned {
       border-color: var(--accent);
-      background: linear-gradient(140deg, var(--surface), var(--surface2));
+      background: var(--surface2);
     }
-    .card.broke { opacity: 0.38; filter: grayscale(0.6); }
-    .card.impossible { opacity: 0.28; cursor: default; }
-    .card.maxed { opacity: 0.45; filter: grayscale(0.7); }
+    .card.broke { opacity: 0.3; }
+    .card.impossible { opacity: 0.18; cursor: default; }
+    .card.maxed { opacity: 0.4; }
 
-    .card-emoji { font-size: 2.25rem; line-height: 1; }
+    @keyframes cardPurchase {
+      0% { background: var(--accent-dim); }
+      100% { background: var(--surface2); }
+    }
+    .card.pulse-buy { animation: cardPurchase 0.35s ease-out; }
+
+    .card-emoji {
+      font-size: 1.8rem;
+      line-height: 1;
+    }
     .card-name {
-      font-size: 0.875rem;
+      font-size: 0.8rem;
       font-weight: 700;
-      line-height: 1.35;
+      line-height: 1.3;
       color: var(--text);
+      letter-spacing: -0.01em;
     }
     .card-price {
-      font-size: 0.95rem;
+      font-family: var(--font-mono);
+      font-size: 0.85rem;
       font-weight: 800;
       color: var(--accent);
       font-variant-numeric: tabular-nums;
@@ -207,22 +535,22 @@
       word-break: break-all;
     }
     .card-desc {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       color: var(--text-muted);
-      line-height: 1.45;
+      line-height: 1.4;
       flex: 1;
     }
     .impossible-badge {
       display: inline-block;
-      font-size: 0.6rem;
+      font-size: 0.55rem;
       font-weight: 800;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      background: rgba(255,68,68,0.15);
+      background: rgba(255,68,68,0.12);
       color: #f87171;
-      border: 1px solid rgba(255,68,68,0.35);
+      border: 1px solid rgba(255,68,68,0.25);
       border-radius: 4px;
-      padding: 0.1rem 0.35rem;
+      padding: 0.1rem 0.4rem;
       margin-left: 0.3rem;
       vertical-align: middle;
     }
@@ -230,22 +558,22 @@
     .card-controls {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
-      margin-top: 0.3rem;
+      gap: 2px;
+      margin-top: 0.35rem;
     }
     .btn-q {
       width: 30px;
       height: 30px;
-      border-radius: 7px;
       border: 1px solid var(--border);
+      border-radius: 6px;
       background: var(--surface2);
       color: var(--text);
-      font: 700 1.1rem/1 inherit;
+      font: 700 1.1rem/1 var(--font-body);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: border-color 0.15s, color 0.15s, background 0.15s;
+      transition: all 0.12s ease;
       flex-shrink: 0;
     }
     .btn-q:not(:disabled):hover {
@@ -253,16 +581,23 @@
       color: var(--accent);
       background: var(--accent-dim);
     }
-    .btn-q:disabled { opacity: 0.25; cursor: not-allowed; }
-    .btn-buy:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .btn-q:not(:disabled):active {
+      transform: scale(0.93);
+    }
+    .btn-q:disabled { opacity: 0.2; cursor: not-allowed; }
+    .btn-buy:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
 
     .qty-inp {
       flex: 1;
       min-width: 0;
       text-align: center;
-      font: 700 0.95rem/1 inherit;
+      font: 700 0.85rem/1 var(--font-mono);
       font-variant-numeric: tabular-nums;
-      color: var(--text-muted);
+      color: var(--text-dim);
       background: transparent;
       border: none;
       outline: none;
@@ -270,45 +605,28 @@
       cursor: text;
       transition: color 0.15s, background 0.15s;
       border-radius: 4px;
-      padding: 2px 0;
+      padding: 4px 0;
     }
     .qty-inp:focus {
-      background: var(--surface2);
+      background: var(--surface3);
       color: var(--text);
     }
     .qty-inp.nonzero { color: var(--accent); }
-    /* hide spin arrows */
     .qty-inp::-webkit-inner-spin-button,
     .qty-inp::-webkit-outer-spin-button { -webkit-appearance: none; }
     .qty-inp[type=number] { -moz-appearance: textfield; appearance: textfield; }
 
-    /* ── ACTIONS BAR ─────────────────────────────────────── */
+    /* ── ACTIONS BAR (hidden, moved to header) ─ */
     .actions-bar {
-      max-width: 1400px;
-      margin: 0 auto;
-      padding: 0 1.5rem 2.5rem;
-      display: flex;
-      justify-content: center;
+      display: none;
     }
-    .btn-summary {
-      padding: 0.55rem 1.4rem;
-      border: 1px solid var(--border);
-      background: transparent;
-      color: var(--text-muted);
-      border-radius: 9999px;
-      font: 600 0.82rem/1 inherit;
-      cursor: pointer;
-      transition: border-color 0.2s, color 0.2s;
-    }
-    .btn-summary:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* ── OVERLAY ─────────────────────────────────────────── */
+    /* ── OVERLAY ─────────────────────────────── */
     .overlay {
       display: none;
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.8);
-      backdrop-filter: blur(14px);
       z-index: 200;
       align-items: center;
       justify-content: center;
@@ -317,126 +635,275 @@
     .overlay.open { display: flex; }
 
     .modal {
-      background: var(--surface);
+      background: var(--surface-solid);
       border: 1px solid var(--accent);
-      border-radius: 20px;
+      border-radius: 12px;
       padding: 2rem;
       max-width: 560px;
       width: 100%;
       max-height: 82vh;
       overflow-y: auto;
-      box-shadow: 0 0 60px var(--accent-glow);
-      transition: border-color 0.35s, box-shadow 0.35s;
+      position: relative;
     }
-    .modal-title { font-size: 1.6rem; font-weight: 900; margin-bottom: 0.35rem; }
-    .modal-sub { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+
+    .modal-title {
+      font-size: 1.5rem;
+      font-weight: 900;
+      margin-bottom: 0.35rem;
+      letter-spacing: -0.03em;
+      text-transform: uppercase;
+    }
+    .modal-sub {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
 
     .receipt { display: flex; flex-direction: column; margin-bottom: 1.5rem; }
     .receipt-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.5rem 0;
+      padding: 0.55rem 0;
       border-bottom: 1px solid var(--border);
       font-size: 0.85rem;
       gap: 0.5rem;
+      transition: background 0.1s;
     }
-    .receipt-row:last-child { border-bottom: none; font-weight: 700; font-size: 0.95rem; }
-    .receipt-name { display: flex; align-items: center; gap: 0.45rem; min-width: 0; }
+    .receipt-row:hover {
+      background: rgba(255,255,255,0.02);
+    }
+    .receipt-row:last-child {
+      border-bottom: none;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border-top: 2px solid var(--accent);
+      margin-top: 0.3rem;
+      padding-top: 0.75rem;
+    }
+    .receipt-name { display: flex; align-items: center; gap: 0.5rem; min-width: 0; }
     .receipt-name span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .receipt-total { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; transition: color 0.35s; }
-    .receipt-empty { text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.875rem; }
+    .receipt-total {
+      font-family: var(--font-mono);
+      color: var(--accent);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      transition: color 0.35s;
+      font-size: 0.82rem;
+    }
+    .receipt-empty { text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.875rem; }
 
-    .modal-btns { display: flex; gap: 0.6rem; }
+    .modal-btns { display: flex; gap: 0.5rem; }
     .btn-continue {
       flex: 1;
-      padding: 0.8rem;
+      padding: 0.85rem;
       background: transparent;
       color: var(--accent);
       border: 2px solid var(--accent);
-      border-radius: 10px;
-      font: 800 0.95rem/1 inherit;
+      border-radius: 8px;
+      font: 800 0.8rem/1 var(--font-body);
       cursor: pointer;
-      transition: background 0.2s, color 0.2s;
+      transition: all 0.15s ease;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
-    .btn-continue:hover { background: var(--accent-dim); }
+    .btn-continue:hover {
+      background: var(--accent-dim);
+    }
     .btn-reset {
       flex: 1;
-      padding: 0.8rem;
+      padding: 0.85rem;
       background: var(--accent);
       color: #000;
       border: 2px solid var(--accent);
-      border-radius: 10px;
-      font: 800 0.95rem/1 inherit;
+      border-radius: 8px;
+      font: 800 0.8rem/1 var(--font-body);
       cursor: pointer;
-      transition: opacity 0.2s, background 0.35s, border-color 0.35s;
+      transition: all 0.15s ease;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
-    .btn-reset:hover { opacity: 0.82; }
-
-    /* ── RESPONSIVE ──────────────────────────────────────── */
-    @media (max-width: 600px) {
-      .header-inner { padding: 0.75rem 1rem 0.65rem; }
-      .header-top { display: block; margin-bottom: 0.55rem; }
-      .site-title { font-size: 1.35rem; width: 100%; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
-      .site-title .title-emoji { font-size: 1.5em; justify-self: end; margin-right: 0.35rem; }
-      .balance-num { font-size: 1.45rem; }
-      .sc-name { font-size: 0.65rem; }
-      .main { padding: 1rem; }
-      .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.65rem; }
-      .actions-bar { padding: 0 1rem 2rem; }
-      .modal-btns { flex-direction: column; }
+    .btn-reset:hover {
+      opacity: 0.85;
     }
 
-    /* ── MUTE BUTTON ──────────────────────────── */
-    .btn-mute {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.2rem 0.4rem;
-      cursor: pointer;
-      font-size: 1rem;
-      line-height: 1;
+    /* ── CONFETTI ─────────────────────────────── */
+    .confetti-container {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 250;
+      overflow: hidden;
+    }
+    .confetti-piece {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      top: -10px;
+      animation: confettiFall linear forwards;
+      will-change: transform;
+    }
+    @keyframes confettiFall {
+      0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
+      70% { opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg) scale(0.5); opacity: 0; }
+    }
+
+    /* ── FOOTER ───────────────────────────────── */
+    .footer {
+      text-align: center;
+      padding: 2rem 1rem 2.5rem;
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      position: relative;
+      z-index: 1;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .footer a {
       color: var(--text-muted);
-      transition: border-color 0.2s, color 0.2s;
-      vertical-align: middle;
-      margin-left: 0.5rem;
+      text-decoration: none;
+      transition: color 0.15s;
     }
-    .btn-mute:hover { border-color: var(--accent); color: var(--accent); }
+    .footer a:hover { color: var(--accent); }
+    .footer-sep {
+      display: inline-block;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      vertical-align: middle;
+      margin: 0 0.6rem;
+    }
+
+    /* ── FLYING EMOJI ────────────────────────── */
+    .flying-emoji {
+      position: fixed;
+      z-index: 999;
+      font-size: 1.4rem;
+      pointer-events: none;
+      transition: all 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+      opacity: 1;
+    }
+    .flying-emoji.fly {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+
+    /* ── SCROLLBAR ────────────────────────────── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+    /* ── RESPONSIVE ───────────────────────────── */
+    @media (max-width: 900px) {
+      .header-bar {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 0;
+      }
+      .hud-logo {
+        border-right: none;
+        padding: 0.6rem 0.75rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .btn-menu {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        padding: 0.6rem 0.75rem;
+      }
+      .sc-label {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        flex: 1;
+        padding: 0.6rem 0.75rem;
+      }
+      .hud-stats {
+        width: 100%;
+        border-bottom: 1px solid var(--border);
+      }
+      .hud-stat {
+        flex: 1;
+        justify-content: center;
+        padding: 0.5rem 0.5rem;
+      }
+      .hud-spacer { display: none; }
+      .btn-summary {
+        flex: 1;
+        justify-content: center;
+        border-left: none;
+        border-right: 1px solid var(--border);
+        padding: 0.6rem 0.5rem;
+      }
+      .btn-mute {
+        border-left: none;
+        width: 44px;
+        padding: 0.6rem 0;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .main { padding: 0.5rem; }
+      .grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      }
+      .card { padding: 0.8rem; }
+      .card-emoji { font-size: 1.5rem; }
+      .card-name { font-size: 0.75rem; }
+      .card-price { font-size: 0.78rem; }
+      .hud-stat-val { font-size: 0.85rem; }
+      .modal-btns { flex-direction: column; }
+      .modal { padding: 1.5rem; }
+      .intro-title { margin-bottom: 0.3rem; }
+      .intro-opt { padding: 0.85rem 1rem; gap: 0.75rem; }
+      .intro-opt-icon { width: 40px; height: 40px; font-size: 1.2rem; }
+      .intro-opt-name { font-size: 0.9rem; }
+    }
+
+    /* Reduce motion for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
   </style>
 </head>
-<body class="s-elon">
+<body>
 
-<!-- ── HEADER ─────────────────────────────── -->
+<!-- ── HEADER / HUD ──────────────────────── -->
 <header>
   <div class="header-inner">
-    <div class="header-top">
-      <div class="site-title" onclick="resetCurrent()"><span class="title-emoji">💸</span><span>Spend It All</span></div>
+    <div class="header-bar">
+      <div class="hud-logo" onclick="resetCurrent()" title="Back to menu">
+        <span class="hud-logo-icon">💸</span>
+        <span class="hud-logo-text">Spend It All</span>
+      </div>
+      <button class="btn-menu" onclick="resetCurrent()" title="Main menu">
+        <span class="btn-menu-icon"><span></span><span></span><span></span></span>
+        Menu
+      </button>
+      <div class="sc-label" id="scLabel"></div>
+      <div class="hud-stats">
+        <div class="hud-stat">
+          <span class="hud-stat-lbl">REMAINING</span>
+          <span class="hud-stat-val" id="bal">$200B</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-stat-lbl">SPENT</span>
+          <span class="hud-stat-val stat-spent" id="spent-display">$0</span>
+        </div>
+      </div>
+      <div class="hud-spacer"></div>
+      <button class="btn-summary" onclick="openSummary(false)">
+        <span class="btn-summary-icon">◧</span>
+        Summary
+      </button>
       <button class="btn-mute" id="muteBtn" onclick="toggleMute()" title="Toggle sound">🔊</button>
     </div>
-    <div class="scenario-picker">
-      <button class="sc-card active" data-id="elon" onclick="switchScenario('elon')">
-        <span class="sc-emoji">🚀</span><span class="sc-name">Elon Musk's Money</span>
-      </button>
-      <button class="sc-card" data-id="debt" onclick="switchScenario('debt')">
-        <span class="sc-emoji">🏛️</span><span class="sc-name">National Debt</span>
-      </button>
-      <button class="sc-card" data-id="powerball" onclick="switchScenario('powerball')">
-        <span class="sc-emoji">🎰</span><span class="sc-name">Powerball</span>
-      </button>
-    </div>
-    <div class="balance-stats">
-      <div class="stat">
-        <div class="stat-num" id="bal">$200B</div>
-        <div class="stat-lbl">Remaining</div>
-      </div>
-      <div class="stat-divider"></div>
-      <div class="stat">
-        <div class="stat-num stat-spent" id="spent-display">$0</div>
-        <div class="stat-lbl">Spent</div>
-      </div>
-    </div>
     <div class="progress-track"><div class="progress-fill" id="pfill"></div></div>
-    <div class="tagline" id="tagline"></div>
   </div>
 </header>
 
@@ -449,7 +916,20 @@
   <button class="btn-summary" onclick="openSummary(false)">📋 View Spending Summary</button>
 </div>
 
-<div style="text-align:center;padding:1rem 0 2rem;font-size:0.75rem;color:#374151;">Made by Yaakov Sassoon</div>
+<div class="footer">Made by Yaakov Sassoon<span class="footer-sep"></span>Spend It All</div>
+
+<!-- ── INTRO SCREEN ──────────────────────── -->
+<div class="intro" id="intro">
+  <div class="intro-particles" id="introParticles"></div>
+  <div class="intro-inner">
+    <div class="intro-badge"><span class="intro-badge-dot"></span> Ready to play</div>
+    <div class="intro-title"><span class="intro-title-accent">Spend It All</span></div>
+    <div class="intro-sub">Choose your challenge and try to spend every last dollar.</div>
+    <div class="intro-options-label">Select a scenario</div>
+    <div class="intro-options" id="introOptions"></div>
+    <div class="intro-footer">All amounts are extremely accurate. Trust us.</div>
+  </div>
+</div>
 
 <!-- ── OVERLAY ────────────────────────────── -->
 <div class="overlay" id="overlay" onclick="overlayClick(event)">
@@ -463,6 +943,9 @@
     </div>
   </div>
 </div>
+
+<!-- ── CONFETTI CONTAINER ────────────────── -->
+<div class="confetti-container" id="confetti"></div>
 
 <script>
 // ── SOUND ENGINE ─────────────────────────────────────────────────────────────
@@ -483,7 +966,6 @@ const SFX = (() => {
     return ctx;
   }
 
-  // Oscillator with attack/decay envelope
   function tone(freq, type, start, dur, peak, attack) {
     const c = getCtx();
     const atk = attack || 0.003;
@@ -499,7 +981,6 @@ const SFX = (() => {
     osc.stop(start + dur + 0.01);
   }
 
-  // Oscillator routed through a filter
   function filteredTone(freq, type, start, dur, peak, fType, fFreq, attack) {
     const c = getCtx();
     const atk = attack || 0.003;
@@ -518,7 +999,6 @@ const SFX = (() => {
     osc.stop(start + dur + 0.01);
   }
 
-  // Filtered noise burst from shared buffer
   function noise(start, dur, fType, fFreq, fQ, peak, attack) {
     const c = getCtx();
     const atk = attack || 0.001;
@@ -537,7 +1017,6 @@ const SFX = (() => {
     src.stop(start + dur + 0.01);
   }
 
-  // Noise with automated filter sweep
   function noiseSweep(start, dur, fType, fStart, fEnd, fQ, peak, attack) {
     const c = getCtx();
     const atk = attack || 0.005;
@@ -558,14 +1037,12 @@ const SFX = (() => {
     src.stop(start + dur + 0.01);
   }
 
-  // Bell/metallic tone — layered inharmonic partials
   function metallic(freq, ratios, start, dur, peak, attack) {
     const atk = attack || 0.001;
     const perPartial = peak / ratios.length;
     ratios.forEach(r => tone(freq * r, 'sine', start, dur, perPartial, atk));
   }
 
-  // Frequency sweep
   function sweep(startF, endF, type, start, dur, peak, attack) {
     const c = getCtx();
     const atk = attack || 0.003;
@@ -582,127 +1059,92 @@ const SFX = (() => {
     osc.stop(start + dur + 0.01);
   }
 
-  // ── Sound definitions ──────────────────────────────────
-
   const sounds = {
-
-    // Ka-ching cash register
     buy() {
       const t = getCtx().currentTime;
-      // "Ka" — mechanical click
-      noise(t, 0.025, 'highpass', 3000, 0.7, 0.08);          // sharp transient
-      noise(t, 0.04,  'bandpass', 800,  1.5, 0.04);           // body thump
-      // "Ching" — metallic bell strike (60ms after ka)
-      noise(t + 0.058, 0.015, 'bandpass', 5000, 2.0, 0.06);  // strike impulse
-      metallic(2200, [1, 1.5, 2.42, 3.14], t + 0.06, 0.35, 0.10); // bell partials
-      tone(1100, 'sine', t + 0.06, 0.30, 0.06, 0.002);       // warm fundamental
-      tone(4400, 'sine', t + 0.065, 0.15, 0.015);             // high shimmer
-    },
-
-    // Coin return
-    sell() {
-      const t = getCtx().currentTime;
-      // Detuned coin ping pair (beating)
-      tone(3200, 'sine', t, 0.12, 0.03);
-      tone(3208, 'sine', t, 0.12, 0.03);
-      // Mid body
-      tone(1600, 'sine', t, 0.15, 0.03, 0.002);
-      // Descending slide
-      sweep(2400, 1200, 'sine', t, 0.12, 0.025);
-      // Soft click
-      noise(t, 0.01, 'highpass', 4000, 0.5, 0.03);
-    },
-
-    // Rich ka-ching (bulk purchase)
-    bulkBuy() {
-      const t = getCtx().currentTime;
-      // First ka-ching (same as buy)
       noise(t, 0.025, 'highpass', 3000, 0.7, 0.08);
       noise(t, 0.04,  'bandpass', 800,  1.5, 0.04);
       noise(t + 0.058, 0.015, 'bandpass', 5000, 2.0, 0.06);
       metallic(2200, [1, 1.5, 2.42, 3.14], t + 0.06, 0.35, 0.10);
       tone(1100, 'sine', t + 0.06, 0.30, 0.06, 0.002);
       tone(4400, 'sine', t + 0.065, 0.15, 0.015);
-      // Second bell ring (higher, delayed)
+    },
+    sell() {
+      const t = getCtx().currentTime;
+      tone(3200, 'sine', t, 0.12, 0.03);
+      tone(3208, 'sine', t, 0.12, 0.03);
+      tone(1600, 'sine', t, 0.15, 0.03, 0.002);
+      sweep(2400, 1200, 'sine', t, 0.12, 0.025);
+      noise(t, 0.01, 'highpass', 4000, 0.5, 0.03);
+    },
+    bulkBuy() {
+      const t = getCtx().currentTime;
+      noise(t, 0.025, 'highpass', 3000, 0.7, 0.08);
+      noise(t, 0.04,  'bandpass', 800,  1.5, 0.04);
+      noise(t + 0.058, 0.015, 'bandpass', 5000, 2.0, 0.06);
+      metallic(2200, [1, 1.5, 2.42, 3.14], t + 0.06, 0.35, 0.10);
+      tone(1100, 'sine', t + 0.06, 0.30, 0.06, 0.002);
+      tone(4400, 'sine', t + 0.065, 0.15, 0.015);
       metallic(2600, [1, 1.5, 2.42, 3.14], t + 0.15, 0.30, 0.08);
       tone(1300, 'sine', t + 0.15, 0.25, 0.04, 0.002);
-      // Coin scatter
       noise(t + 0.08, 0.08, 'bandpass', 6000, 3.0, 0.03, 0.003);
     },
-
-    // Multiple coins falling
     bulkSell() {
       const t = getCtx().currentTime;
-      // Three descending coin pings
       tone(3200, 'sine', t, 0.12, 0.025);
       tone(3207, 'sine', t, 0.12, 0.025);
       tone(2800, 'sine', t + 0.06, 0.12, 0.02);
       tone(2806, 'sine', t + 0.06, 0.12, 0.02);
       tone(2400, 'sine', t + 0.12, 0.15, 0.02);
       tone(2407, 'sine', t + 0.12, 0.15, 0.02);
-      // Descending sweep
       sweep(3000, 800, 'sine', t, 0.20, 0.02);
-      // Click + coin rattle
       noise(t, 0.012, 'highpass', 4000, 0.5, 0.03);
       noise(t + 0.04, 0.06, 'bandpass', 5500, 2.5, 0.02, 0.002);
     },
-
-    // Celebration fanfare
     win() {
       const t = getCtx().currentTime;
-      // Ascending arpeggio (triangle for warmth)
       const notes = [
-        [523,  0.00, 0.20],  // C5
-        [659,  0.12, 0.20],  // E5
-        [784,  0.24, 0.20],  // G5
-        [1047, 0.36, 0.35],  // C6
+        [523,  0.00, 0.20],
+        [659,  0.12, 0.20],
+        [784,  0.24, 0.20],
+        [1047, 0.36, 0.35],
       ];
       notes.forEach(([f, off, dur]) => {
         tone(f, 'triangle', t + off, dur, 0.06, 0.005);
-        tone(f * 2, 'sine', t + off, dur * 0.75, 0.02, 0.005);  // octave double
-        noise(t + off, 0.02, 'highpass', 6000, 1.0, 0.02);       // shimmer
+        tone(f * 2, 'sine', t + off, dur * 0.75, 0.02, 0.005);
+        noise(t + off, 0.02, 'highpass', 6000, 1.0, 0.02);
       });
-      // Sustained final chord
-      tone(1047, 'sine', t + 0.50, 0.30, 0.04, 0.01);  // C6
-      tone(1318, 'sine', t + 0.50, 0.30, 0.03, 0.01);  // E6
-      tone(1568, 'sine', t + 0.50, 0.30, 0.03, 0.01);  // G6
-      // Sparkle
+      tone(1047, 'sine', t + 0.50, 0.30, 0.04, 0.01);
+      tone(1318, 'sine', t + 0.50, 0.30, 0.03, 0.01);
+      tone(1568, 'sine', t + 0.50, 0.30, 0.03, 0.01);
       noise(t + 0.50, 0.15, 'highpass', 8000, 1.5, 0.02, 0.005);
     },
-
-    // Transition whoosh
     scenarioSwitch() {
       const t = getCtx().currentTime;
       sweep(200, 2000, 'sine', t, 0.15, 0.03);
       noiseSweep(t, 0.18, 'bandpass', 400, 4000, 1.5, 0.05, 0.005);
-      noise(t + 0.12, 0.015, 'highpass', 5000, 0.5, 0.02);  // arrival click
+      noise(t + 0.12, 0.015, 'highpass', 5000, 0.5, 0.02);
     },
-
-    // Rewind sweep
     reset() {
       const t = getCtx().currentTime;
       filteredTone(3000, 'sawtooth', t, 0.25, 0.03, 'lowpass', 4000);
       sweep(3000, 200, 'sine', t, 0.25, 0.02);
       noiseSweep(t, 0.25, 'bandpass', 5000, 300, 1.0, 0.04, 0.003);
-      tone(120, 'sine', t + 0.20, 0.08, 0.04, 0.005);       // landing thump
-      noise(t, 0.03, 'bandpass', 3000, 2.0, 0.03);           // rattle
+      tone(120, 'sine', t + 0.20, 0.08, 0.04, 0.005);
+      noise(t, 0.03, 'bandpass', 3000, 2.0, 0.03);
     },
-
-    // Continue spending — eager, upbeat pop
     continueSpending() {
       const t = getCtx().currentTime;
-      noise(t, 0.012, 'highpass', 4000, 0.8, 0.04);           // crisp click
-      tone(784, 'sine', t + 0.01, 0.10, 0.05, 0.003);        // G5
-      tone(1047, 'sine', t + 0.06, 0.12, 0.06, 0.003);       // C6 — upward resolve
-      tone(1047 * 2, 'sine', t + 0.06, 0.08, 0.015, 0.003);  // C7 sparkle
+      noise(t, 0.012, 'highpass', 4000, 0.8, 0.04);
+      tone(784, 'sine', t + 0.01, 0.10, 0.05, 0.003);
+      tone(1047, 'sine', t + 0.06, 0.12, 0.06, 0.003);
+      tone(1047 * 2, 'sine', t + 0.06, 0.08, 0.015, 0.003);
     },
-
-    // Subtle rejection
     denied() {
       const t = getCtx().currentTime;
       filteredTone(180, 'square', t, 0.08, 0.03, 'lowpass', 400, 0.003);
       filteredTone(140, 'square', t + 0.07, 0.10, 0.03, 'lowpass', 400, 0.003);
-      noise(t, 0.015, 'bandpass', 600, 2.0, 0.03);           // muffled click
+      noise(t, 0.015, 'bandpass', 600, 2.0, 0.03);
     },
   };
 
@@ -722,7 +1164,57 @@ function toggleMute() {
   document.getElementById('muteBtn').textContent = m ? '🔇' : '🔊';
 }
 
-// ── DATA ──────────────────────────────────────────────────────────────────────
+// ── CONFETTI ─────────────────────────────────────────────────────────────────
+
+function launchConfetti() {
+  const container = document.getElementById('confetti');
+  container.innerHTML = '';
+  const colors = ['#00d4ff','#ff5c5c','#ffcc00','#a855f7','#4ade80','#f472b6','#fb923c'];
+  const shapes = ['circle','square','triangle'];
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const shape = shapes[Math.floor(Math.random() * shapes.length)];
+    const size = 6 + Math.random() * 6;
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.width = size + 'px';
+    piece.style.height = size + 'px';
+    piece.style.background = color;
+    piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+    piece.style.animationDelay = Math.random() * 0.8 + 's';
+    if (shape === 'circle') piece.style.borderRadius = '50%';
+    else if (shape === 'triangle') {
+      piece.style.background = 'transparent';
+      piece.style.width = '0';
+      piece.style.height = '0';
+      piece.style.borderLeft = size/2 + 'px solid transparent';
+      piece.style.borderRight = size/2 + 'px solid transparent';
+      piece.style.borderBottom = size + 'px solid ' + color;
+    }
+    container.appendChild(piece);
+  }
+  setTimeout(() => container.innerHTML = '', 5000);
+}
+
+// ── INTRO PARTICLES ──────────────────────────────────────────────────────────
+
+function createIntroParticles() {
+  const container = document.getElementById('introParticles');
+  const emojis = ['💵','💰','💎','🪙','💳','🏦','💲','🤑','📈','🎰'];
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    p.style.left = Math.random() * 100 + '%';
+    p.style.fontSize = (0.8 + Math.random() * 1.2) + 'rem';
+    p.style.animationDuration = (8 + Math.random() * 12) + 's';
+    p.style.animationDelay = -(Math.random() * 20) + 's';
+    container.appendChild(p);
+  }
+}
+
+// ── DATA ─────────────────────────────────────────────────────────────────────
 
 const SCENARIOS = [
   {
@@ -777,7 +1269,7 @@ const SCENARIOS = [
   },
   {
     id: 'debt', cls: 's-debt',
-    label: '🇺🇸 National Debt',
+    label: '🏛️ National Debt',
     budget: 33_000_000_000_000,
     tagline: "It's your problem too. Fix it.",
     endTitle: "💸 You spent it all!",
@@ -869,13 +1361,13 @@ const SCENARIOS = [
   }
 ];
 
-// ── STATE ─────────────────────────────────────────────────────────────────────
+// ── STATE ────────────────────────────────────────────────────────────────────
 
 let sc        = null;
 let items     = [];
 let remaining = 0;
 
-// ── HELPERS ───────────────────────────────────────────────────────────────────
+// ── HELPERS ──────────────────────────────────────────────────────────────────
 
 function fmt(n) {
   if (n >= 1e15) return '$' + trim((n/1e15).toFixed(1)) + ' quadrillion';
@@ -897,23 +1389,23 @@ function fmtCount(n) {
   return String(n);
 }
 
-// ── CORE ──────────────────────────────────────────────────────────────────────
+// ── CORE ─────────────────────────────────────────────────────────────────────
 
 function switchScenario(id, silent) {
   sc = SCENARIOS.find(s => s.id === id);
-  items = SCENARIOS.flatMap(s => s.items)
+  items = sc.items
+    .slice()
     .sort((a, b) => a.p - b.p)
-    .filter((it, idx, arr) => arr.findIndex(x => x.n === it.n) === idx)
     .map(it => ({ ...it, count: 0 }));
   remaining = sc.budget;
 
   document.body.className = sc.cls;
-  document.querySelectorAll('.sc-card').forEach(t => t.classList.toggle('active', t.dataset.id === id));
-  document.getElementById('tagline').textContent = sc.tagline;
+  document.getElementById('scLabel').innerHTML = sc.label;
 
   renderGrid();
   updateHeader();
   document.getElementById('overlay').classList.remove('open');
+  document.getElementById('intro').classList.add('hidden');
   if (!silent) SFX.play('scenarioSwitch');
 }
 
@@ -927,6 +1419,8 @@ function buy(id) {
   updateCard(id);
   updateHeader('buy');
   recheckBuyBtns();
+  pulseCard(id);
+  flyEmoji(id);
   if (!checkWin()) SFX.play('buy');
 }
 
@@ -939,6 +1433,42 @@ function sell(id) {
   updateHeader('sell');
   recheckBuyBtns();
   SFX.play('sell');
+}
+
+function pulseCard(id) {
+  const card = document.getElementById('c-' + id);
+  if (!card) return;
+  card.classList.remove('pulse-buy');
+  void card.offsetWidth;
+  card.classList.add('pulse-buy');
+}
+
+function flyEmoji(id) {
+  const it = items.find(i => i.id === id);
+  const card = document.getElementById('c-' + id);
+  const target = document.getElementById('bal');
+  if (!it || !card || !target) return;
+
+  const emojiEl = card.querySelector('.card-emoji');
+  if (!emojiEl) return;
+
+  const srcRect = emojiEl.getBoundingClientRect();
+  const tgtRect = target.getBoundingClientRect();
+
+  const flyer = document.createElement('div');
+  flyer.className = 'flying-emoji';
+  flyer.textContent = it.e;
+  flyer.style.left = srcRect.left + 'px';
+  flyer.style.top = srcRect.top + 'px';
+  document.body.appendChild(flyer);
+
+  requestAnimationFrame(() => {
+    flyer.classList.add('fly');
+    flyer.style.left = (tgtRect.left + tgtRect.width / 2 - 10) + 'px';
+    flyer.style.top = (tgtRect.top + tgtRect.height / 2 - 10) + 'px';
+  });
+
+  setTimeout(() => flyer.remove(), 600);
 }
 
 function updateCard(id) {
@@ -971,6 +1501,8 @@ function setQty(id, rawVal) {
   updateHeader(actual > 0 ? 'buy' : 'sell');
   recheckBuyBtns();
   if (actual > 0) {
+    pulseCard(id);
+    flyEmoji(id);
     if (!checkWin()) SFX.play(Math.abs(actual) > 1 ? 'bulkBuy' : 'buy');
   } else {
     SFX.play(Math.abs(actual) > 1 ? 'bulkSell' : 'sell');
@@ -990,7 +1522,8 @@ function recheckBuyBtns() {
 
 function updateHeader(flash) {
   const el = document.getElementById('bal');
-  el.textContent = fmtFull(remaining);
+  el.textContent = fmt(remaining);
+  el.title = fmtFull(remaining);
   if (flash) {
     el.classList.remove('flash-buy', 'flash-sell');
     void el.offsetWidth;
@@ -998,18 +1531,19 @@ function updateHeader(flash) {
   }
   const spent = sc.budget - remaining;
   const pct   = Math.min(100, (spent / sc.budget) * 100);
-  document.getElementById('spent-display').textContent = fmtFull(spent);
+  document.getElementById('spent-display').textContent = fmt(spent);
+  document.getElementById('spent-display').title = fmtFull(spent);
   document.getElementById('pfill').style.width = pct + '%';
 }
 
 function checkWin() {
   const affordable = items.filter(i => !i.impossible);
   const cheapest   = Math.min(...affordable.map(i => i.p));
-  if (remaining < cheapest) { SFX.play('win'); openSummary(true); return true; }
+  if (remaining < cheapest) { SFX.play('win'); launchConfetti(); openSummary(true); return true; }
   return false;
 }
 
-// ── SUMMARY / OVERLAY ─────────────────────────────────────────────────────────
+// ── SUMMARY / OVERLAY ────────────────────────────────────────────────────────
 
 function openSummary(isEnd) {
   const bought = items.filter(i => i.count > 0);
@@ -1055,9 +1589,13 @@ function overlayClick(e) {
 
 function closeOverlay() { SFX.play('continueSpending'); document.getElementById('overlay').classList.remove('open'); }
 
-function resetCurrent() { SFX.play('reset'); switchScenario(sc.id, true); }
+function resetCurrent() {
+  SFX.play('reset');
+  document.getElementById('overlay').classList.remove('open');
+  document.getElementById('intro').classList.remove('hidden');
+}
 
-// ── RENDER GRID ───────────────────────────────────────────────────────────────
+// ── RENDER GRID ──────────────────────────────────────────────────────────────
 
 function renderGrid() {
   const grid = document.getElementById('grid');
@@ -1085,10 +1623,27 @@ function renderGrid() {
   updateHeader();
 }
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// ── INIT ─────────────────────────────────────────────────────────────────────
 
-switchScenario('elon', true);
+// Build intro options from scenario data
+const introEl = document.getElementById('introOptions');
+SCENARIOS.forEach(s => {
+  const btn = document.createElement('button');
+  btn.className = 'intro-opt';
+  btn.dataset.id = s.id;
+  btn.innerHTML =
+    `<div class="intro-opt-icon">${s.label.split(' ')[0]}</div>` +
+    `<div class="intro-opt-text">` +
+      `<div class="intro-opt-name">${s.label.replace(/^[^\s]+\s/, '')}</div>` +
+      `<div class="intro-opt-detail">${s.tagline}</div>` +
+    `</div>` +
+    `<div class="intro-opt-budget">${fmt(s.budget)}</div>`;
+  btn.onclick = () => switchScenario(s.id);
+  introEl.appendChild(btn);
+});
+
 document.getElementById('muteBtn').textContent = SFX.isMuted() ? '🔇' : '🔊';
+createIntroParticles();
 </script>
 </body>
 </html>
