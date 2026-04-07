@@ -386,6 +386,22 @@
       .actions-bar { padding: 0 1rem 2rem; }
       .modal-btns { flex-direction: column; }
     }
+
+    /* ── MUTE BUTTON ──────────────────────────── */
+    .btn-mute {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.2rem 0.4rem;
+      cursor: pointer;
+      font-size: 1rem;
+      line-height: 1;
+      color: var(--text-muted);
+      transition: border-color 0.2s, color 0.2s;
+      vertical-align: middle;
+      margin-left: 0.5rem;
+    }
+    .btn-mute:hover { border-color: var(--accent); color: var(--accent); }
   </style>
 </head>
 <body class="s-elon">
@@ -395,6 +411,7 @@
   <div class="header-inner">
     <div class="header-top">
       <div class="site-title" onclick="resetCurrent()"><span class="title-emoji">💸</span><span>Spend It All</span></div>
+      <button class="btn-mute" id="muteBtn" onclick="toggleMute()" title="Toggle sound">🔊</button>
     </div>
     <div class="scenario-picker">
       <button class="sc-card active" data-id="elon" onclick="switchScenario('elon')">
@@ -448,6 +465,263 @@
 </div>
 
 <script>
+// ── SOUND ENGINE ─────────────────────────────────────────────────────────────
+
+const SFX = (() => {
+  let ctx = null;
+  let noiseBuf = null;
+  let muted = localStorage.getItem('spend-it-all-muted') === '1';
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    if (!noiseBuf) {
+      noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    return ctx;
+  }
+
+  // Oscillator with attack/decay envelope
+  function tone(freq, type, start, dur, peak, attack) {
+    const c = getCtx();
+    const atk = attack || 0.003;
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.linearRampToValueAtTime(peak, start + atk);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    osc.connect(g).connect(c.destination);
+    osc.start(start);
+    osc.stop(start + dur + 0.01);
+  }
+
+  // Oscillator routed through a filter
+  function filteredTone(freq, type, start, dur, peak, fType, fFreq, attack) {
+    const c = getCtx();
+    const atk = attack || 0.003;
+    const osc = c.createOscillator();
+    const flt = c.createBiquadFilter();
+    const g = c.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    flt.type = fType;
+    flt.frequency.value = fFreq;
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.linearRampToValueAtTime(peak, start + atk);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    osc.connect(flt).connect(g).connect(c.destination);
+    osc.start(start);
+    osc.stop(start + dur + 0.01);
+  }
+
+  // Filtered noise burst from shared buffer
+  function noise(start, dur, fType, fFreq, fQ, peak, attack) {
+    const c = getCtx();
+    const atk = attack || 0.001;
+    const src = c.createBufferSource();
+    src.buffer = noiseBuf;
+    const flt = c.createBiquadFilter();
+    flt.type = fType;
+    flt.frequency.value = fFreq;
+    flt.Q.value = fQ;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.linearRampToValueAtTime(peak, start + atk);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    src.connect(flt).connect(g).connect(c.destination);
+    src.start(start);
+    src.stop(start + dur + 0.01);
+  }
+
+  // Noise with automated filter sweep
+  function noiseSweep(start, dur, fType, fStart, fEnd, fQ, peak, attack) {
+    const c = getCtx();
+    const atk = attack || 0.005;
+    const src = c.createBufferSource();
+    src.buffer = noiseBuf;
+    const flt = c.createBiquadFilter();
+    flt.type = fType;
+    flt.frequency.setValueAtTime(fStart, start);
+    flt.frequency.exponentialRampToValueAtTime(fEnd, start + dur);
+    flt.Q.value = fQ;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.linearRampToValueAtTime(peak, start + atk);
+    g.gain.setValueAtTime(peak, start + dur * 0.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    src.connect(flt).connect(g).connect(c.destination);
+    src.start(start);
+    src.stop(start + dur + 0.01);
+  }
+
+  // Bell/metallic tone — layered inharmonic partials
+  function metallic(freq, ratios, start, dur, peak, attack) {
+    const atk = attack || 0.001;
+    const perPartial = peak / ratios.length;
+    ratios.forEach(r => tone(freq * r, 'sine', start, dur, perPartial, atk));
+  }
+
+  // Frequency sweep
+  function sweep(startF, endF, type, start, dur, peak, attack) {
+    const c = getCtx();
+    const atk = attack || 0.003;
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(startF, start);
+    osc.frequency.exponentialRampToValueAtTime(endF, start + dur);
+    g.gain.setValueAtTime(0.0001, start);
+    g.gain.linearRampToValueAtTime(peak, start + atk);
+    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    osc.connect(g).connect(c.destination);
+    osc.start(start);
+    osc.stop(start + dur + 0.01);
+  }
+
+  // ── Sound definitions ──────────────────────────────────
+
+  const sounds = {
+
+    // Ka-ching cash register
+    buy() {
+      const t = getCtx().currentTime;
+      // "Ka" — mechanical click
+      noise(t, 0.025, 'highpass', 3000, 0.7, 0.08);          // sharp transient
+      noise(t, 0.04,  'bandpass', 800,  1.5, 0.04);           // body thump
+      // "Ching" — metallic bell strike (60ms after ka)
+      noise(t + 0.058, 0.015, 'bandpass', 5000, 2.0, 0.06);  // strike impulse
+      metallic(2200, [1, 1.5, 2.42, 3.14], t + 0.06, 0.35, 0.10); // bell partials
+      tone(1100, 'sine', t + 0.06, 0.30, 0.06, 0.002);       // warm fundamental
+      tone(4400, 'sine', t + 0.065, 0.15, 0.015);             // high shimmer
+    },
+
+    // Coin return
+    sell() {
+      const t = getCtx().currentTime;
+      // Detuned coin ping pair (beating)
+      tone(3200, 'sine', t, 0.12, 0.03);
+      tone(3208, 'sine', t, 0.12, 0.03);
+      // Mid body
+      tone(1600, 'sine', t, 0.15, 0.03, 0.002);
+      // Descending slide
+      sweep(2400, 1200, 'sine', t, 0.12, 0.025);
+      // Soft click
+      noise(t, 0.01, 'highpass', 4000, 0.5, 0.03);
+    },
+
+    // Rich ka-ching (bulk purchase)
+    bulkBuy() {
+      const t = getCtx().currentTime;
+      // First ka-ching (same as buy)
+      noise(t, 0.025, 'highpass', 3000, 0.7, 0.08);
+      noise(t, 0.04,  'bandpass', 800,  1.5, 0.04);
+      noise(t + 0.058, 0.015, 'bandpass', 5000, 2.0, 0.06);
+      metallic(2200, [1, 1.5, 2.42, 3.14], t + 0.06, 0.35, 0.10);
+      tone(1100, 'sine', t + 0.06, 0.30, 0.06, 0.002);
+      tone(4400, 'sine', t + 0.065, 0.15, 0.015);
+      // Second bell ring (higher, delayed)
+      metallic(2600, [1, 1.5, 2.42, 3.14], t + 0.15, 0.30, 0.08);
+      tone(1300, 'sine', t + 0.15, 0.25, 0.04, 0.002);
+      // Coin scatter
+      noise(t + 0.08, 0.08, 'bandpass', 6000, 3.0, 0.03, 0.003);
+    },
+
+    // Multiple coins falling
+    bulkSell() {
+      const t = getCtx().currentTime;
+      // Three descending coin pings
+      tone(3200, 'sine', t, 0.12, 0.025);
+      tone(3207, 'sine', t, 0.12, 0.025);
+      tone(2800, 'sine', t + 0.06, 0.12, 0.02);
+      tone(2806, 'sine', t + 0.06, 0.12, 0.02);
+      tone(2400, 'sine', t + 0.12, 0.15, 0.02);
+      tone(2407, 'sine', t + 0.12, 0.15, 0.02);
+      // Descending sweep
+      sweep(3000, 800, 'sine', t, 0.20, 0.02);
+      // Click + coin rattle
+      noise(t, 0.012, 'highpass', 4000, 0.5, 0.03);
+      noise(t + 0.04, 0.06, 'bandpass', 5500, 2.5, 0.02, 0.002);
+    },
+
+    // Celebration fanfare
+    win() {
+      const t = getCtx().currentTime;
+      // Ascending arpeggio (triangle for warmth)
+      const notes = [
+        [523,  0.00, 0.20],  // C5
+        [659,  0.12, 0.20],  // E5
+        [784,  0.24, 0.20],  // G5
+        [1047, 0.36, 0.35],  // C6
+      ];
+      notes.forEach(([f, off, dur]) => {
+        tone(f, 'triangle', t + off, dur, 0.06, 0.005);
+        tone(f * 2, 'sine', t + off, dur * 0.75, 0.02, 0.005);  // octave double
+        noise(t + off, 0.02, 'highpass', 6000, 1.0, 0.02);       // shimmer
+      });
+      // Sustained final chord
+      tone(1047, 'sine', t + 0.50, 0.30, 0.04, 0.01);  // C6
+      tone(1318, 'sine', t + 0.50, 0.30, 0.03, 0.01);  // E6
+      tone(1568, 'sine', t + 0.50, 0.30, 0.03, 0.01);  // G6
+      // Sparkle
+      noise(t + 0.50, 0.15, 'highpass', 8000, 1.5, 0.02, 0.005);
+    },
+
+    // Transition whoosh
+    scenarioSwitch() {
+      const t = getCtx().currentTime;
+      sweep(200, 2000, 'sine', t, 0.15, 0.03);
+      noiseSweep(t, 0.18, 'bandpass', 400, 4000, 1.5, 0.05, 0.005);
+      noise(t + 0.12, 0.015, 'highpass', 5000, 0.5, 0.02);  // arrival click
+    },
+
+    // Rewind sweep
+    reset() {
+      const t = getCtx().currentTime;
+      filteredTone(3000, 'sawtooth', t, 0.25, 0.03, 'lowpass', 4000);
+      sweep(3000, 200, 'sine', t, 0.25, 0.02);
+      noiseSweep(t, 0.25, 'bandpass', 5000, 300, 1.0, 0.04, 0.003);
+      tone(120, 'sine', t + 0.20, 0.08, 0.04, 0.005);       // landing thump
+      noise(t, 0.03, 'bandpass', 3000, 2.0, 0.03);           // rattle
+    },
+
+    // Continue spending — eager, upbeat pop
+    continueSpending() {
+      const t = getCtx().currentTime;
+      noise(t, 0.012, 'highpass', 4000, 0.8, 0.04);           // crisp click
+      tone(784, 'sine', t + 0.01, 0.10, 0.05, 0.003);        // G5
+      tone(1047, 'sine', t + 0.06, 0.12, 0.06, 0.003);       // C6 — upward resolve
+      tone(1047 * 2, 'sine', t + 0.06, 0.08, 0.015, 0.003);  // C7 sparkle
+    },
+
+    // Subtle rejection
+    denied() {
+      const t = getCtx().currentTime;
+      filteredTone(180, 'square', t, 0.08, 0.03, 'lowpass', 400, 0.003);
+      filteredTone(140, 'square', t + 0.07, 0.10, 0.03, 'lowpass', 400, 0.003);
+      noise(t, 0.015, 'bandpass', 600, 2.0, 0.03);           // muffled click
+    },
+  };
+
+  return {
+    play(name) { if (!muted && sounds[name]) sounds[name](); },
+    isMuted() { return muted; },
+    toggle() {
+      muted = !muted;
+      localStorage.setItem('spend-it-all-muted', muted ? '1' : '0');
+      return muted;
+    }
+  };
+})();
+
+function toggleMute() {
+  const m = SFX.toggle();
+  document.getElementById('muteBtn').textContent = m ? '🔇' : '🔊';
+}
+
 // ── DATA ──────────────────────────────────────────────────────────────────────
 
 const SCENARIOS = [
@@ -625,7 +899,7 @@ function fmtCount(n) {
 
 // ── CORE ──────────────────────────────────────────────────────────────────────
 
-function switchScenario(id) {
+function switchScenario(id, silent) {
   sc = SCENARIOS.find(s => s.id === id);
   items = SCENARIOS.flatMap(s => s.items)
     .sort((a, b) => a.p - b.p)
@@ -640,18 +914,20 @@ function switchScenario(id) {
   renderGrid();
   updateHeader();
   document.getElementById('overlay').classList.remove('open');
+  if (!silent) SFX.play('scenarioSwitch');
 }
 
 function buy(id) {
   const it = items.find(i => i.id === id);
-  if (!it || it.impossible || it.p > remaining) return;
-  if (it.maxQty != null && it.count >= it.maxQty) return;
+  if (!it) return;
+  if (it.impossible || it.p > remaining) { SFX.play('denied'); return; }
+  if (it.maxQty != null && it.count >= it.maxQty) { SFX.play('denied'); return; }
   it.count++;
   remaining = Math.round((remaining - it.p) * 1e6) / 1e6;
   updateCard(id);
   updateHeader('buy');
   recheckBuyBtns();
-  checkWin();
+  if (!checkWin()) SFX.play('buy');
 }
 
 function sell(id) {
@@ -662,6 +938,7 @@ function sell(id) {
   updateCard(id);
   updateHeader('sell');
   recheckBuyBtns();
+  SFX.play('sell');
 }
 
 function updateCard(id) {
@@ -693,7 +970,11 @@ function setQty(id, rawVal) {
   updateCard(id);
   updateHeader(actual > 0 ? 'buy' : 'sell');
   recheckBuyBtns();
-  if (actual > 0) checkWin();
+  if (actual > 0) {
+    if (!checkWin()) SFX.play(Math.abs(actual) > 1 ? 'bulkBuy' : 'buy');
+  } else {
+    SFX.play(Math.abs(actual) > 1 ? 'bulkSell' : 'sell');
+  }
 }
 
 function recheckBuyBtns() {
@@ -724,7 +1005,8 @@ function updateHeader(flash) {
 function checkWin() {
   const affordable = items.filter(i => !i.impossible);
   const cheapest   = Math.min(...affordable.map(i => i.p));
-  if (remaining < cheapest) openSummary(true);
+  if (remaining < cheapest) { SFX.play('win'); openSummary(true); return true; }
+  return false;
 }
 
 // ── SUMMARY / OVERLAY ─────────────────────────────────────────────────────────
@@ -771,9 +1053,9 @@ function overlayClick(e) {
     document.getElementById('overlay').classList.remove('open');
 }
 
-function closeOverlay() { document.getElementById('overlay').classList.remove('open'); }
+function closeOverlay() { SFX.play('continueSpending'); document.getElementById('overlay').classList.remove('open'); }
 
-function resetCurrent() { switchScenario(sc.id); }
+function resetCurrent() { SFX.play('reset'); switchScenario(sc.id, true); }
 
 // ── RENDER GRID ───────────────────────────────────────────────────────────────
 
@@ -805,7 +1087,8 @@ function renderGrid() {
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 
-switchScenario('elon');
+switchScenario('elon', true);
+document.getElementById('muteBtn').textContent = SFX.isMuted() ? '🔇' : '🔊';
 </script>
 </body>
 </html>
