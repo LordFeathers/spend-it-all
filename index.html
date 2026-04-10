@@ -196,10 +196,6 @@
     .hud-stat-val.stat-spent {
       color: #ff5555;
     }
-    .hud-stat-val.stat-rate {
-      color: #c084fc;
-    }
-
     /* Spacer */
     .hud-spacer { flex: 1; }
 
@@ -1348,10 +1344,6 @@
           <span class="hud-stat-lbl">SPENT</span>
           <span class="hud-stat-val stat-spent" id="spent-display">$0</span>
         </div>
-        <div class="hud-stat">
-          <span class="hud-stat-lbl">$/SEC</span>
-          <span class="hud-stat-val stat-rate" id="rate-display">$0/s</span>
-        </div>
       </div>
       <div class="hud-spacer"></div>
       <button class="btn-summary" onclick="openSummary(false)">
@@ -2079,11 +2071,6 @@ let sc        = null;
 let items     = [];
 let remaining = 0;
 
-// Spending rate tracking
-let spendingHistory = [];
-let rateIntervalId  = null;
-const RATE_WINDOW   = 10_000; // 10-second rolling window
-
 // Easter egg flags
 let eeBrokeTriggered = false;
 
@@ -2107,27 +2094,6 @@ function fmtCount(n) {
   if (n >= 1e6) return trim((n/1e6).toFixed(1)) + 'M';
   if (n >= 1e3) return trim((n/1e3).toFixed(1)) + 'K';
   return String(n);
-}
-
-// ── SPENDING RATE ────────────────────────────────────────────────────────────
-
-function recordSpending(amount) {
-  if (amount <= 0) return;
-  spendingHistory.push({ time: Date.now(), amount });
-}
-
-function getSpendingRate() {
-  const now = Date.now();
-  spendingHistory = spendingHistory.filter(e => now - e.time < RATE_WINDOW);
-  if (spendingHistory.length === 0) return 0;
-  return spendingHistory.reduce((s, e) => s + e.amount, 0) / (RATE_WINDOW / 1000);
-}
-
-function updateRateDisplay() {
-  const rate = getSpendingRate();
-  const el = document.getElementById('rate-display');
-  if (!el) return;
-  odometer(el, rate > 0 ? fmt(rate) + '/s' : '$0/s');
 }
 
 // ── LEADERBOARD ─────────────────────────────────────────────────────────────
@@ -2460,17 +2426,11 @@ function switchScenario(id, silent) {
   document.getElementById('toastContainer').innerHTML = '';
   renderAchievementsModal();
 
-  // reset rate tracking
-  spendingHistory = [];
-  if (rateIntervalId) clearInterval(rateIntervalId);
-  rateIntervalId = setInterval(updateRateDisplay, 1000);
-
   // reset easter egg flags
   eeBrokeTriggered = false;
 
   renderGrid();
   updateHeader();
-  updateRateDisplay();
   document.getElementById('overlay').classList.remove('open');
   document.getElementById('intro').classList.add('hidden');
   if (!silent) SFX.play('scenarioSwitch');
@@ -2494,7 +2454,6 @@ function buy(id) {
   it.count++;
   remaining = Math.round((remaining - it.p) * 1e6) / 1e6;
   if (it.p > sc.budget * 0.01) triggerPageShake();
-  recordSpending(it.p);
   updateCard(id);
   updateHeader('buy');
   recheckBuyBtns(id);
@@ -2652,7 +2611,6 @@ function setQty(id, rawVal) {
   remaining = Math.round((remaining - actual * it.p) * 1e6) / 1e6;
   const totalCost = Math.abs(actual) * it.p;
   if (actual > 0 && totalCost > sc.budget * 0.01) triggerPageShake();
-  if (actual > 0) recordSpending(totalCost);
   it.count = desired;
   updateCard(id);
   updateHeader(actual > 0 ? 'buy' : 'sell');
@@ -2796,7 +2754,6 @@ function checkWin() {
     if (completionTime > 0) saveToLeaderboard(sc.id, completionTime);
     checkAchievements({ isWin: true });
     openSummary(true, completionTime);
-    if (rateIntervalId) clearInterval(rateIntervalId);
     return true;
   }
   return false;
@@ -2821,6 +2778,9 @@ function openSummary(isEnd, completionTime) {
   const receipt = document.getElementById('receipt');
   receipt.innerHTML = '';
 
+  // Remove any previously inserted achievement/leaderboard sections
+  document.querySelectorAll('.summary-extra').forEach(el => el.remove());
+
   if (bought.length === 0) {
     receipt.innerHTML = '<div class="receipt-empty">Your cart is empty. Get shopping!</div>';
   } else {
@@ -2841,6 +2801,7 @@ function openSummary(isEnd, completionTime) {
   // Show achievements overview on win
   if (isEnd) {
     const achDiv = document.createElement('div');
+    achDiv.className = 'summary-extra';
     achDiv.style.cssText = 'margin-bottom:1.5rem;';
 
     const visibleAch = ACHIEVEMENTS.filter(a =>
@@ -2872,6 +2833,7 @@ function openSummary(isEnd, completionTime) {
     const lbHtml = renderLeaderboardHTML(sc.id, completionTime || null);
     if (lbHtml) {
       const lbDiv = document.createElement('div');
+      lbDiv.className = 'summary-extra';
       lbDiv.innerHTML = lbHtml;
       // Insert after achievements (or after receipt if no achievements)
       const afterNode = receipt.nextSibling;
@@ -2895,8 +2857,6 @@ function closeOverlay() { SFX.play('continueSpending'); document.getElementById(
 
 function resetCurrent() {
   SFX.play('reset');
-  if (rateIntervalId) { clearInterval(rateIntervalId); rateIntervalId = null; }
-  spendingHistory = [];
   document.getElementById('overlay').classList.remove('open');
   document.getElementById('intro').classList.remove('hidden');
 }
