@@ -1064,6 +1064,40 @@
       100% { transform: translate(var(--bx), var(--by)) scale(0.4); opacity: 0; }
     }
 
+    /* ── ACHIEVEMENT SUMMARY TOOLTIPS ─────────── */
+    .ach-tip-global {
+      position: fixed;
+      z-index: 999;
+      background: var(--surface);
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      border-top: 2px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.55rem 0.8rem;
+      max-width: 200px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.1);
+    }
+    .ach-tip-global.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .ach-tip-title {
+      font-size: 0.7rem;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 0.15rem;
+      letter-spacing: -0.01em;
+    }
+    .ach-tip-desc {
+      font-size: 0.62rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
     /* ── SCROLLBAR ────────────────────────────── */
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
