@@ -183,7 +183,7 @@
     }
     .hud-stat-val {
       font-family: var(--font-mono);
-      font-size: 1rem;
+      font-size: clamp(0.55rem, 1.1vw, 0.85rem);
       font-weight: 800;
       color: var(--accent);
       font-variant-numeric: tabular-nums;
@@ -261,13 +261,46 @@
       width: 0%;
       background: var(--accent);
       border-radius: 9999px;
-      transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1), background 0.35s;
+      /* spring overshoot easing */
+      transition: width 0.55s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.35s;
     }
+    @keyframes milestoneFlash {
+      0%, 100% { filter: brightness(1); }
+      35%       { filter: brightness(2.8); }
+    }
+    .progress-fill.milestone-flash { animation: milestoneFlash 0.55s ease; }
 
     @keyframes flashBuy  { 0%,100%{color:var(--accent)} 40%{color:#ff5555} }
     @keyframes flashSell { 0%,100%{color:var(--accent)} 40%{color:#4ade80} }
     .flash-buy  { animation: flashBuy  0.4s ease; }
     .flash-sell { animation: flashSell 0.4s ease; }
+
+    /* ── SHAKE / SQUISH / WAVE ANIMATIONS ───────── */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      15%       { transform: translateX(-6px); }
+      35%       { transform: translateX(6px); }
+      55%       { transform: translateX(-4px); }
+      75%       { transform: translateX(3px); }
+      90%       { transform: translateX(-1px); }
+    }
+    .card-shake { animation: shake 0.38s ease; }
+    .bal-shake  { animation: shake 0.38s ease; }
+
+    @keyframes btnSquish {
+      0%   { transform: scale(1); }
+      25%  { transform: scale(0.75); }
+      60%  { transform: scale(1.2); }
+      100% { transform: scale(1); }
+    }
+    .btn-squish { animation: btnSquish 0.22s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+
+    @keyframes wavePop {
+      0%   { opacity: 0.25; transform: scale(0.95); }
+      55%  { transform: scale(1.03); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+    .wave-pop { animation: wavePop 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
 
     /* ── ODOMETER ────────────────────────────── */
     .od-char { display: inline-block; }
@@ -601,9 +634,6 @@
       border-color: var(--accent);
       color: var(--accent);
       background: var(--accent-dim);
-    }
-    .btn-q:not(:disabled):active {
-      transform: scale(0.93);
     }
     .btn-q:disabled { opacity: 0.2; cursor: not-allowed; }
     .btn-buy:not(:disabled) {
@@ -1100,7 +1130,7 @@
       .card-emoji { font-size: 1.5rem; }
       .card-name { font-size: 0.75rem; }
       .card-price { font-size: 0.78rem; }
-      .hud-stat-val { font-size: 0.85rem; }
+      .hud-stat-val { font-size: 0.6rem; }
       .modal-btns { flex-direction: column; }
       .modal { padding: 1.5rem; }
       .intro-title { margin-bottom: 0.3rem; }
@@ -1930,6 +1960,24 @@ let achievementsEarned = new Set();
 let firstBuyTime    = 0;       // timestamp of first purchase
 let bulkMax         = 0;       // largest single qty-input transaction
 
+// Milestone flash tracking
+const MILESTONE_PCTS          = [25, 50, 75, 90, 99];
+let triggeredProgressMilestones = new Set();
+
+function checkProgressMilestone(pct) {
+  for (const m of MILESTONE_PCTS) {
+    if (pct >= m && !triggeredProgressMilestones.has(m)) {
+      triggeredProgressMilestones.add(m);
+      const fill = document.getElementById('pfill');
+      fill.classList.remove('milestone-flash');
+      void fill.offsetWidth;
+      fill.classList.add('milestone-flash');
+      fill.addEventListener('animationend', () => fill.classList.remove('milestone-flash'), { once: true });
+      break;
+    }
+  }
+}
+
 function checkAchievements({ isBuy, isSell, isWin, pct, item, bulk } = {}) {
   const spent = sc ? sc.budget - remaining : 0;
   const totalBought = items.reduce((s, i) => s + i.count, 0);
@@ -2067,9 +2115,10 @@ function switchScenario(id, silent) {
   document.body.className = sc.cls;
   document.getElementById('scLabel').innerHTML = sc.label;
 
-  // reset achievements + skill tracking
+  // reset achievements, skill tracking, milestones
   achievementsEarned = new Set();
   firstBuyTime = 0; bulkMax = 0;
+  triggeredProgressMilestones = new Set();
   document.getElementById('toastContainer').innerHTML = '';
   renderAchievementsModal();
 
@@ -2081,29 +2130,42 @@ function switchScenario(id, silent) {
 }
 
 function buy(id) {
-  const it = items.find(i => i.id === id);
+  const it   = items.find(i => i.id === id);
+  const card = document.getElementById('c-' + id);
   if (!it) return;
-  if (it.impossible || it.p > remaining) { SFX.play('denied'); return; }
-  if (it.maxQty != null && it.count >= it.maxQty) { SFX.play('denied'); return; }
+  if (it.impossible || it.p > remaining) {
+    SFX.play('denied');
+    shakeCard(id);
+    shakeBalance();
+    return;
+  }
+  if (it.maxQty != null && it.count >= it.maxQty) {
+    SFX.play('denied');
+    shakeCard(id);
+    return;
+  }
   it.count++;
   remaining = Math.round((remaining - it.p) * 1e6) / 1e6;
   updateCard(id);
   updateHeader('buy');
-  recheckBuyBtns();
+  recheckBuyBtns(id);
   pulseCard(id);
-  flyEmoji(id);
+  if (card) squishBtn(card, 'buy');
+  flyEmoji(id, 1);
   checkAchievements({ isBuy: true, item: it });
   if (!checkWin()) SFX.play('buy');
 }
 
 function sell(id) {
-  const it = items.find(i => i.id === id);
+  const it   = items.find(i => i.id === id);
+  const card = document.getElementById('c-' + id);
   if (!it || it.count === 0) return;
   it.count--;
   remaining = Math.round((remaining + it.p) * 1e6) / 1e6;
   updateCard(id);
   updateHeader('sell');
-  recheckBuyBtns();
+  recheckBuyBtns(id);
+  if (card) squishBtn(card, 'sell');
   checkAchievements({ isSell: true });
   SFX.play('sell');
 }
@@ -2116,11 +2178,44 @@ function pulseCard(id) {
   card.classList.add('pulse-buy');
 }
 
-function flyEmoji(id) {
+function shakeCard(id) {
+  const card = document.getElementById('c-' + id);
+  if (!card) return;
+  card.classList.remove('card-shake');
+  void card.offsetWidth;
+  card.classList.add('card-shake');
+  card.addEventListener('animationend', () => card.classList.remove('card-shake'), { once: true });
+}
+
+function shakeBalance() {
+  const el = document.getElementById('bal');
+  el.classList.remove('bal-shake');
+  void el.offsetWidth;
+  el.classList.add('bal-shake');
+  el.addEventListener('animationend', () => el.classList.remove('bal-shake'), { once: true });
+}
+
+function squishBtn(card, type) {
+  const btn = card.querySelector(type === 'buy' ? '.btn-buy' : '.btn-sell');
+  if (!btn) return;
+  btn.classList.remove('btn-squish');
+  void btn.offsetWidth;
+  btn.classList.add('btn-squish');
+  btn.addEventListener('animationend', () => btn.classList.remove('btn-squish'), { once: true });
+}
+
+function flyEmoji(id, count = 1) {
+  const numFlyers = count >= 10 ? 5 : count >= 5 ? 3 : 1;
+  for (let i = 0; i < numFlyers; i++) {
+    setTimeout(() => _launchEmoji(id, i, numFlyers, i === numFlyers - 1), i * 90);
+  }
+}
+
+function _launchEmoji(id, index, total, isLast) {
   const card = document.getElementById('c-' + id);
   if (!card) return;
   const emojiEl = card.querySelector('.card-emoji');
-  const target = document.getElementById('spent-display');
+  const target  = document.getElementById('spent-display');
   if (!emojiEl || !target) return;
 
   const srcRect = emojiEl.getBoundingClientRect();
@@ -2130,32 +2225,30 @@ function flyEmoji(id) {
   fly.className = 'fly-emoji';
   fly.textContent = emojiEl.textContent;
 
-  const startX = srcRect.left;
+  // Fan spread: offset each emoji slightly in the source
+  const spread = total > 1 ? (index - (total - 1) / 2) * 14 : 0;
+  const startX = srcRect.left + spread;
   const startY = srcRect.top;
   fly.style.left = startX + 'px';
-  fly.style.top = startY + 'px';
+  fly.style.top  = startY + 'px';
 
-  const endX = tgtRect.left + tgtRect.width / 2 - 14;
-  const endY = tgtRect.top + tgtRect.height / 2 - 14;
+  const endX = tgtRect.left + tgtRect.width  / 2 - 14;
+  const endY = tgtRect.top  + tgtRect.height / 2 - 14;
   fly.style.setProperty('--dx', (endX - startX) + 'px');
   fly.style.setProperty('--dy', (endY - startY) + 'px');
 
   document.body.appendChild(fly);
+  requestAnimationFrame(() => requestAnimationFrame(() => fly.classList.add('flying')));
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      fly.classList.add('flying');
-    });
-  });
-
-  // Pop the spent display + burst money emojis when emoji arrives
-  setTimeout(() => {
-    const sp = document.getElementById('spent-display');
-    sp.classList.remove('spent-pop');
-    void sp.offsetWidth;
-    sp.classList.add('spent-pop');
-    spawnMoneyBurst(sp);
-  }, 480);
+  if (isLast) {
+    setTimeout(() => {
+      const sp = document.getElementById('spent-display');
+      sp.classList.remove('spent-pop');
+      void sp.offsetWidth;
+      sp.classList.add('spent-pop');
+      spawnMoneyBurst(sp);
+    }, 480);
+  }
 
   setTimeout(() => fly.remove(), 650);
 }
@@ -2209,26 +2302,69 @@ function setQty(id, rawVal) {
   it.count = desired;
   updateCard(id);
   updateHeader(actual > 0 ? 'buy' : 'sell');
-  recheckBuyBtns();
+  recheckBuyBtns(id);
   if (actual > 0) {
+    const card = document.getElementById('c-' + id);
     pulseCard(id);
-    flyEmoji(id);
+    flyEmoji(id, actual);
+    if (card) squishBtn(card, 'buy');
     checkAchievements({ isBuy: true, item: it, bulk: actual });
     if (!checkWin()) SFX.play(Math.abs(actual) > 1 ? 'bulkBuy' : 'buy');
   } else {
+    const card = document.getElementById('c-' + id);
+    if (card) squishBtn(card, 'sell');
     checkAchievements({ isSell: true });
     SFX.play(Math.abs(actual) > 1 ? 'bulkSell' : 'sell');
   }
 }
 
-function recheckBuyBtns() {
-  items.forEach(it => {
+function recheckBuyBtns(sourceId) {
+  // Batch-read all positions to avoid layout thrashing
+  const entries = items.map(it => {
     const card = document.getElementById('c-' + it.id);
-    if (!card) return;
-    const atMax = it.maxQty != null && it.count >= it.maxQty;
+    if (!card) return null;
+    const atMax  = it.maxQty != null && it.count >= it.maxQty;
     const canBuy = !it.impossible && !atMax && it.p <= remaining;
+    const nowBroke = !it.impossible && !canBuy && it.count === 0;
+    const wasBroke = card.classList.contains('broke');
+    const rect = sourceId ? card.getBoundingClientRect() : null;
+    return { it, card, canBuy, nowBroke, wasBroke, rect };
+  }).filter(Boolean);
+
+  // Get source position once
+  let srcCx = 0, srcCy = 0;
+  if (sourceId) {
+    const src = document.getElementById('c-' + sourceId);
+    if (src) {
+      const r = src.getBoundingClientRect();
+      srcCx = r.left + r.width  / 2;
+      srcCy = r.top  + r.height / 2;
+    }
+  }
+
+  entries.forEach(({ it, card, canBuy, nowBroke, wasBroke, rect }) => {
     card.querySelector('.btn-buy').disabled = !canBuy;
-    if (!it.impossible) card.classList.toggle('broke', !canBuy && it.count === 0);
+    if (it.impossible) return;
+
+    if (nowBroke === wasBroke) return;
+
+    if (sourceId && rect) {
+      const dist  = Math.hypot(rect.left + rect.width/2 - srcCx, rect.top + rect.height/2 - srcCy);
+      const delay = Math.min(dist * 0.28, 260);
+      setTimeout(() => {
+        if (nowBroke) {
+          card.classList.add('broke');
+        } else {
+          card.classList.remove('broke');
+          card.classList.remove('wave-pop');
+          void card.offsetWidth;
+          card.classList.add('wave-pop');
+          card.addEventListener('animationend', () => card.classList.remove('wave-pop'), { once: true });
+        }
+      }, delay);
+    } else {
+      card.classList.toggle('broke', nowBroke);
+    }
   });
 }
 
@@ -2270,20 +2406,21 @@ function odometer(el, newText) {
 
 function updateHeader(flash) {
   const el = document.getElementById('bal');
-  odometer(el, fmt(remaining));
+  odometer(el, fmtFull(remaining));
   el.title = fmtFull(remaining);
   if (flash) {
     el.classList.remove('flash-buy', 'flash-sell');
     void el.offsetWidth;
     el.classList.add(flash === 'buy' ? 'flash-buy' : 'flash-sell');
   }
-  const spent = sc.budget - remaining;
-  const pct   = Math.min(100, (spent / sc.budget) * 100);
+  const spent   = sc.budget - remaining;
+  const pct     = Math.min(100, (spent / sc.budget) * 100);
   const spentEl = document.getElementById('spent-display');
-  odometer(spentEl, fmt(spent));
+  odometer(spentEl, fmtFull(spent));
   spentEl.title = fmtFull(spent);
   document.getElementById('pfill').style.width = pct + '%';
   if (flash === 'buy') {
+    checkProgressMilestone(pct);
     checkAchievements({ pct });
   }
 }
