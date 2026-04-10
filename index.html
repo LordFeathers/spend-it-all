@@ -556,11 +556,7 @@
     .card.broke { opacity: 0.3; }
     .card.impossible { opacity: 0.18; cursor: default; }
     .card.maxed { opacity: 0.4; }
-    /* Owned but can no longer buy more — fade the accent border so it doesn't look "active" */
-    .card.owned.maxed,
-    .card.owned:has(.btn-buy:disabled) {
-      border-color: color-mix(in srgb, var(--accent) 20%, transparent);
-    }
+
 
     @keyframes cardPurchase {
       0% { background: var(--accent-dim); }
@@ -1075,68 +1071,119 @@
     ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
 
     /* ── RESPONSIVE ───────────────────────────── */
+    /* ── TABLET (≤ 900px) ─────────────────────── */
     @media (max-width: 900px) {
-      .header-bar {
-        flex-wrap: wrap;
-        height: auto;
-        padding: 0;
+      .header-bar { flex-wrap: wrap; height: auto; padding: 0; }
+      .hud-logo   { border-right: none; padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); }
+      .btn-menu   { border-right: none; border-bottom: 1px solid var(--border); padding: 0.55rem 0.75rem; }
+      .sc-label   { border-right: none; border-bottom: 1px solid var(--border); flex: 1; padding: 0.55rem 0.75rem; }
+      .hud-stats  { width: 100%; border-bottom: 1px solid var(--border); }
+      .hud-stat   { flex: 1; justify-content: center; padding: 0.45rem 0.5rem; }
+      .hud-spacer { display: none; }
+      .btn-summary {
+        flex: 1; justify-content: center;
+        border-left: none; border-right: 1px solid var(--border);
+        padding: 0.55rem 0.5rem;
       }
+      .btn-mute { border-left: none; width: 44px; padding: 0.55rem 0; }
+    }
+
+    /* ── PHONE (≤ 600px) ──────────────────────── */
+    @media (max-width: 600px) {
+
+      /* ── Header — 2-row compact HUD ──────────── */
+      .header-bar { flex-wrap: wrap; height: auto; padding: 0; }
+
+      /* Row 1: logo · scenario · ☰ · 🔊 */
       .hud-logo {
+        padding: 0 0.6rem;
         border-right: none;
-        padding: 0.6rem 0.75rem;
-        border-bottom: 1px solid var(--border);
+        height: 38px;
+      }
+      .hud-logo-icon { font-size: 1.1rem; }
+      .hud-logo-text { font-size: 0.8rem; }
+      .sc-label {
+        flex: 1;
+        border-right: none;
+        padding: 0 0.4rem;
+        height: 38px;
+        font-size: 0.55rem;
       }
       .btn-menu {
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        padding: 0.6rem 0.75rem;
+        border-right: none; border-left: 1px solid var(--border);
+        padding: 0 0.55rem; height: 38px;
       }
-      .sc-label {
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        flex: 1;
-        padding: 0.6rem 0.75rem;
-      }
+      .btn-menu-label { display: none; }
+      .btn-mute { width: 38px; height: 38px; font-size: 0.85rem; }
+
+      /* Row 2: stats + actions — everything inline */
       .hud-stats {
-        width: 100%;
-        border-bottom: 1px solid var(--border);
+        order: 10; /* push to row 2 */
+        width: auto;
+        flex: 1;
+        border-right: none;
+        border-top: 1px solid var(--border);
       }
       .hud-stat {
         flex: 1;
-        justify-content: center;
-        padding: 0.5rem 0.5rem;
+        padding: 0.35rem 0.4rem;
+        height: auto;
+        gap: 0.25rem;
       }
+      .hud-stat-lbl { font-size: 0.45rem; }
+      .hud-stat-val { font-size: 0.7rem; letter-spacing: -0.02em; }
+
       .hud-spacer { display: none; }
       .btn-summary {
-        flex: 1;
-        justify-content: center;
-        border-left: none;
-        border-right: 1px solid var(--border);
-        padding: 0.6rem 0.5rem;
+        order: 10;
+        border-left: 1px solid var(--border);
+        border-right: none;
+        border-top: 1px solid var(--border);
+        padding: 0 0.5rem; height: 38px;
+        font-size: 0;           /* hide text */
       }
-      .btn-mute {
-        border-left: none;
-        width: 44px;
-        padding: 0.6rem 0;
-      }
-    }
+      .btn-summary-icon { font-size: 0.9rem; }
 
-    @media (max-width: 600px) {
+      /* ── Grid ────────────────────────────────── */
       .main { padding: 0.5rem; }
-      .grid {
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      }
-      .card { padding: 0.8rem; }
-      .card-emoji { font-size: 1.5rem; }
-      .card-name { font-size: 0.75rem; }
-      .card-price { font-size: 0.78rem; }
-      .hud-stat-val { font-size: 0.6rem; }
+      .grid { grid-template-columns: repeat(2, 1fr); gap: 0.4rem; }
+      .card { padding: 0.7rem; gap: 0.2rem; }
+      .card-emoji { font-size: 1.4rem; }
+      .card-name  { font-size: 0.72rem; }
+      .card-price { font-size: 0.72rem; }
+      .card-desc  { font-size: 0.6rem; line-height: 1.3; }
+      .btn-q { width: 28px; height: 28px; font-size: 1rem; }
+      .qty-inp { font-size: 0.75rem; }
+
+      /* ── Modals ──────────────────────────────── */
+      .overlay { padding: 0.6rem; }
+      .modal { padding: 1.2rem; border-radius: 10px; max-height: 88vh; }
+      .modal-title { font-size: 1.2rem; }
       .modal-btns { flex-direction: column; }
-      .modal { padding: 1.5rem; }
-      .intro-title { margin-bottom: 0.3rem; }
-      .intro-opt { padding: 0.85rem 1rem; gap: 0.75rem; }
-      .intro-opt-icon { width: 40px; height: 40px; font-size: 1.2rem; }
-      .intro-opt-name { font-size: 0.9rem; }
+
+      /* ── Achievements — 2 columns ────────────── */
+      .ach-overlay { padding: 0.6rem; }
+      .ach-modal { padding: 1rem; border-radius: 10px; max-height: 90vh; }
+      .ach-grid  { grid-template-columns: repeat(2, 1fr); gap: 0.35rem; }
+      .ach-row   { padding: 0.6rem 0.45rem; }
+      .ach-row-icon { font-size: 1.3rem; margin-bottom: 0.3rem; }
+      .ach-row-title { font-size: 0.6rem; }
+      .ach-row-sub   { font-size: 0.5rem; }
+      .ach-row-badge { font-size: 0.45rem; padding: 0.08rem 0.3rem; }
+
+      /* ── Intro ───────────────────────────────── */
+      .intro-inner { padding: 0 0.5rem; }
+      .intro-title { font-size: clamp(1.8rem, 10vw, 2.8rem); margin-bottom: 0.3rem; }
+      .intro-sub   { font-size: 0.85rem; margin-bottom: 1.5rem; }
+      .intro-opt   { padding: 0.8rem 0.9rem; gap: 0.6rem; }
+      .intro-opt-icon { width: 38px; height: 38px; font-size: 1.15rem; border-radius: 8px; }
+      .intro-opt-name { font-size: 0.88rem; }
+      .intro-opt-detail { font-size: 0.68rem; }
+      .intro-opt-budget { font-size: 0.78rem; }
+      .intro-badge { font-size: 0.6rem; margin-bottom: 1rem; }
+
+      /* ── Footer ──────────────────────────────── */
+      .footer { padding: 1rem 0.5rem 1.5rem; font-size: 0.55rem; }
     }
 
     /* Reduce motion for accessibility */
@@ -1160,7 +1207,7 @@
       </div>
       <button class="btn-menu" onclick="resetCurrent()" title="Main menu">
         <span class="btn-menu-icon"><span></span><span></span><span></span></span>
-        Main Menu
+        <span class="btn-menu-label">Main Menu</span>
       </button>
       <div class="sc-label" id="scLabel"></div>
       <div class="hud-stats">
@@ -1617,7 +1664,6 @@ const SCENARIOS = [
       { id:'eD0', e:'🚽', n:'Gold Toilet',                    p:1_000_000,         d:'A classic investment.' },
       { id:'eD1', e:'🚁', n:'Personal Helicopter',            p:2_500_000,         d:'Skip traffic permanently.' },
       { id:'eD2', e:'🏎️', n:'Bugatti Chiron',                 p:3_000_000,         d:'0-60 in 2.4 seconds.' },
-      { id:'eD3', e:'🎤', n:'Book Beyoncé for a Party',       p:5_000_000,         d:'Just for your birthday.' },
       { id:'eD4', e:'🍷', n:'A Vineyard',                     p:5_000_000,         d:'Make your own wine.' },
       { id:'eD5', e:'🎸', n:'Your Own Music Festival',        p:5_000_000,         d:'Headliner TBD.' },
       // $10M – $100M
@@ -1729,7 +1775,6 @@ const SCENARIOS = [
       { id:'dD4', e:'🚁', n:'Personal Helicopter',            p:2_500_000,         d:'Skip traffic permanently.' },
       { id:'dD5', e:'🏎️', n:'Bugatti Chiron',                 p:3_000_000,         d:'0-60 in 2.4 seconds.' },
       { id:'dD6', e:'🍷', n:'A Vineyard',                     p:5_000_000,         d:'Make your own wine.' },
-      { id:'dD7', e:'🎤', n:'Book Beyoncé for a Party',       p:5_000_000,         d:'Just for your birthday.' },
       // $10M – $100M
       { id:'d11', e:'📣', n:'Superbowl Ad (30 sec)',          p:7_000_000,                       d:'30 seconds. $7 million. Worth it?' },
       { id:'dD8', e:'🎤', n:'Book Taylor Swift (1 show)',     p:10_000_000,                      d:'Friendship bracelets not included.' },
@@ -2283,6 +2328,7 @@ function updateCard(id) {
   card.querySelector('.btn-sell').disabled = it.count === 0;
   card.classList.toggle('owned', it.count > 0);
   card.classList.toggle('maxed', it.maxQty != null && it.count >= it.maxQty);
+  if (it.count === 0) { card.style.borderColor = ''; card.style.opacity = ''; }
 }
 
 function setQty(id, rawVal) {
@@ -2319,51 +2365,57 @@ function setQty(id, rawVal) {
 }
 
 function recheckBuyBtns(sourceId) {
-  // Batch-read all positions to avoid layout thrashing
+  // Batch-read all rects before any writes to avoid layout thrashing
   const entries = items.map(it => {
     const card = document.getElementById('c-' + it.id);
     if (!card) return null;
-    const atMax  = it.maxQty != null && it.count >= it.maxQty;
-    const canBuy = !it.impossible && !atMax && it.p <= remaining;
+    const atMax    = it.maxQty != null && it.count >= it.maxQty;
+    const canBuy   = !it.impossible && !atMax && it.p <= remaining;
     const nowBroke = !it.impossible && !canBuy && it.count === 0;
     const wasBroke = card.classList.contains('broke');
-    const rect = sourceId ? card.getBoundingClientRect() : null;
+    const rect     = (sourceId && !nowBroke && wasBroke) ? card.getBoundingClientRect() : null;
     return { it, card, canBuy, nowBroke, wasBroke, rect };
   }).filter(Boolean);
 
-  // Get source position once
+  // Source centre (only needed for wave-pop, i.e. broke→not-broke)
   let srcCx = 0, srcCy = 0;
   if (sourceId) {
     const src = document.getElementById('c-' + sourceId);
-    if (src) {
-      const r = src.getBoundingClientRect();
-      srcCx = r.left + r.width  / 2;
-      srcCy = r.top  + r.height / 2;
-    }
+    if (src) { const r = src.getBoundingClientRect(); srcCx = r.left + r.width/2; srcCy = r.top + r.height/2; }
   }
 
   entries.forEach(({ it, card, canBuy, nowBroke, wasBroke, rect }) => {
+    // Button state — always instant
     card.querySelector('.btn-buy').disabled = !canBuy;
+
+    // Dim owned items that can no longer be purchased — match .maxed look
+    if (it.count > 0 && !canBuy) {
+      card.style.borderColor = 'rgba(128,128,128,0.2)';
+      card.style.opacity = '0.4';
+    } else if (it.count > 0) {
+      card.style.borderColor = '';
+      card.style.opacity = '';
+    }
+
     if (it.impossible) return;
 
     if (nowBroke === wasBroke) return;
 
-    if (sourceId && rect) {
-      const dist  = Math.hypot(rect.left + rect.width/2 - srcCx, rect.top + rect.height/2 - srcCy);
-      const delay = Math.min(dist * 0.28, 260);
-      setTimeout(() => {
-        if (nowBroke) {
-          card.classList.add('broke');
-        } else {
-          card.classList.remove('broke');
+    if (nowBroke) {
+      // Going broke — instant, no delay (prevents stale timeouts lighting cards back up)
+      card.classList.add('broke');
+    } else {
+      // Becoming affordable — wave-pop with distance delay
+      card.classList.remove('broke');
+      if (sourceId && rect) {
+        const delay = Math.min(Math.hypot(rect.left + rect.width/2 - srcCx, rect.top + rect.height/2 - srcCy) * 0.28, 260);
+        setTimeout(() => {
           card.classList.remove('wave-pop');
           void card.offsetWidth;
           card.classList.add('wave-pop');
           card.addEventListener('animationend', () => card.classList.remove('wave-pop'), { once: true });
-        }
-      }, delay);
-    } else {
-      card.classList.toggle('broke', nowBroke);
+        }, delay);
+      }
     }
   });
 }
@@ -2406,7 +2458,7 @@ function odometer(el, newText) {
 
 function updateHeader(flash) {
   const el = document.getElementById('bal');
-  odometer(el, fmtFull(remaining));
+  odometer(el, window.innerWidth <= 600 ? fmt(remaining) : fmtFull(remaining));
   el.title = fmtFull(remaining);
   if (flash) {
     el.classList.remove('flash-buy', 'flash-sell');
@@ -2416,7 +2468,7 @@ function updateHeader(flash) {
   const spent   = sc.budget - remaining;
   const pct     = Math.min(100, (spent / sc.budget) * 100);
   const spentEl = document.getElementById('spent-display');
-  odometer(spentEl, fmtFull(spent));
+  odometer(spentEl, window.innerWidth <= 600 ? fmt(spent) : fmtFull(spent));
   spentEl.title = fmtFull(spent);
   document.getElementById('pfill').style.width = pct + '%';
   if (flash === 'buy') {
@@ -2472,6 +2524,35 @@ function openSummary(isEnd) {
     total.className = 'receipt-row';
     total.innerHTML = `<div>Total spent</div><div class="receipt-total">${fmt(spent)}</div>`;
     receipt.appendChild(total);
+  }
+
+  // Show achievements overview on win
+  if (isEnd) {
+    const achDiv = document.createElement('div');
+    achDiv.style.cssText = 'margin-bottom:1.5rem;';
+
+    const visibleAch = ACHIEVEMENTS.filter(a =>
+      a.id !== 'spent_1t' || (sc && sc.budget >= 1e12)
+    );
+    const earned = visibleAch.filter(a => achievementsEarned.has(a.id));
+
+    achDiv.innerHTML =
+      `<div style="font:800 0.85rem/1 var(--font-body);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.6rem;">` +
+        `🏆 Achievements — ${earned.length} / ${visibleAch.length}` +
+      `</div>` +
+      `<div style="display:flex;flex-wrap:wrap;gap:0.35rem;">` +
+        visibleAch.map(a => {
+          const got = achievementsEarned.has(a.id);
+          return `<span title="${a.title}: ${a.sub}" style="` +
+            `display:inline-flex;align-items:center;gap:0.3rem;` +
+            `padding:0.25rem 0.5rem;border-radius:6px;font-size:0.65rem;font-weight:700;` +
+            `background:${got ? 'var(--surface3)' : 'var(--surface2)'};` +
+            `border:1px solid ${got ? 'var(--border-hover)' : 'var(--border)'};` +
+            `opacity:${got ? '1' : '0.35'};` +
+          `">${a.icon} ${a.title}</span>`;
+        }).join('') +
+      `</div>`;
+    receipt.parentNode.insertBefore(achDiv, receipt.nextSibling);
   }
 
   SFX.play('openPanel');
@@ -2542,6 +2623,9 @@ SCENARIOS.forEach(s => {
 
 document.getElementById('muteBtn').textContent = SFX.isMuted() ? '🔇' : '🔊';
 createIntroParticles();
+
+// Re-render header numbers on resize (e.g. rotation changes between full/abbreviated)
+window.addEventListener('resize', () => { if (sc) updateHeader(); }, { passive: true });
 </script>
 </body>
 </html>
