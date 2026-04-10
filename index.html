@@ -196,6 +196,9 @@
     .hud-stat-val.stat-spent {
       color: #ff5555;
     }
+    .hud-stat-val.stat-rate {
+      color: #c084fc;
+    }
 
     /* Spacer */
     .hud-spacer { flex: 1; }
@@ -286,6 +289,17 @@
     }
     .card-shake { animation: shake 0.38s ease; }
     .bal-shake  { animation: shake 0.38s ease; }
+
+    @keyframes pageShake {
+      0%, 100% { transform: translate(0, 0); }
+      10%      { transform: translate(-3px, 1px); }
+      25%      { transform: translate(3px, -1px); }
+      40%      { transform: translate(-2px, 2px); }
+      55%      { transform: translate(2px, -1px); }
+      70%      { transform: translate(-1px, 1px); }
+      85%      { transform: translate(1px, 0); }
+    }
+    .page-shake { animation: pageShake 0.4s ease; }
 
     @keyframes btnSquish {
       0%   { transform: scale(1); }
@@ -797,6 +811,87 @@
       100% { transform: translateY(100vh) rotate(720deg) scale(0.5); opacity: 0; }
     }
 
+    /* ── LEADERBOARD ──────────────────────────── */
+    .lb-section { margin-bottom: 1.5rem; }
+    .lb-title {
+      font: 800 0.85rem/1 var(--font-body);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.6rem;
+    }
+    .lb-row {
+      display: flex;
+      align-items: center;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      gap: 0.75rem;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-row.lb-current { background: var(--accent-dim); border-radius: 6px; padding: 0.4rem 0.5rem; }
+    .lb-rank { width: 2rem; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
+    .lb-time { font-family: var(--font-mono); font-weight: 700; color: var(--accent); flex: 1; }
+    .lb-date { color: var(--text-muted); font-size: 0.65rem; }
+    .lb-new {
+      display: inline-block;
+      font-size: 0.5rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      background: rgba(74,222,128,0.15);
+      color: #4ade80;
+      border: 1px solid rgba(74,222,128,0.3);
+      border-radius: 4px;
+      padding: 0.08rem 0.35rem;
+      margin-left: 0.35rem;
+      letter-spacing: 0.05em;
+      animation: lbPulse 1.5s ease-in-out infinite;
+    }
+    @keyframes lbPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* ── EASTER EGGS ──────────────────────────── */
+    .ee-rocket {
+      position: fixed;
+      z-index: 9999;
+      font-size: 3rem;
+      pointer-events: none;
+      animation: rocketFly 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    @keyframes rocketFly {
+      0%   { bottom: -50px; left: 50%; transform: translateX(-50%) rotate(-15deg); opacity: 1; }
+      100% { bottom: 110vh; left: 55%; transform: translateX(-50%) rotate(-15deg); opacity: 0; }
+    }
+
+    .ee-whale {
+      position: fixed;
+      z-index: 9999;
+      font-size: 4rem;
+      pointer-events: none;
+      top: 50%;
+      animation: whaleSwim 3s ease-in-out forwards;
+    }
+    @keyframes whaleSwim {
+      0%   { left: -80px; transform: translateY(-50%) scaleX(1); opacity: 0; }
+      10%  { opacity: 1; }
+      45%  { transform: translateY(-60%) scaleX(1); }
+      55%  { transform: translateY(-40%) scaleX(1); }
+      90%  { opacity: 1; }
+      100% { left: calc(100vw + 80px); transform: translateY(-50%) scaleX(1); opacity: 0; }
+    }
+
+    .ee-invert { animation: colorInvert 0.6s ease; }
+    @keyframes colorInvert {
+      0%, 100% { filter: none; }
+      30%, 70% { filter: invert(1) hue-rotate(180deg); }
+    }
+
+    @keyframes moneyFlood {
+      0%   { top: -30px; opacity: 1; transform: rotate(0deg); }
+      100% { top: 110vh; opacity: 0; transform: rotate(720deg); }
+    }
+
     /* ── ACHIEVEMENTS MODAL ─────────────────────── */
     .ach-overlay {
       display: none;
@@ -1252,6 +1347,10 @@
         <div class="hud-stat">
           <span class="hud-stat-lbl">SPENT</span>
           <span class="hud-stat-val stat-spent" id="spent-display">$0</span>
+        </div>
+        <div class="hud-stat">
+          <span class="hud-stat-lbl">$/SEC</span>
+          <span class="hud-stat-val stat-rate" id="rate-display">$0/s</span>
         </div>
       </div>
       <div class="hud-spacer"></div>
@@ -1980,6 +2079,14 @@ let sc        = null;
 let items     = [];
 let remaining = 0;
 
+// Spending rate tracking
+let spendingHistory = [];
+let rateIntervalId  = null;
+const RATE_WINDOW   = 10_000; // 10-second rolling window
+
+// Easter egg flags
+let eeBrokeTriggered = false;
+
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 
 function fmt(n) {
@@ -2000,6 +2107,160 @@ function fmtCount(n) {
   if (n >= 1e6) return trim((n/1e6).toFixed(1)) + 'M';
   if (n >= 1e3) return trim((n/1e3).toFixed(1)) + 'K';
   return String(n);
+}
+
+// ── SPENDING RATE ────────────────────────────────────────────────────────────
+
+function recordSpending(amount) {
+  if (amount <= 0) return;
+  spendingHistory.push({ time: Date.now(), amount });
+}
+
+function getSpendingRate() {
+  const now = Date.now();
+  spendingHistory = spendingHistory.filter(e => now - e.time < RATE_WINDOW);
+  if (spendingHistory.length === 0) return 0;
+  return spendingHistory.reduce((s, e) => s + e.amount, 0) / (RATE_WINDOW / 1000);
+}
+
+function updateRateDisplay() {
+  const rate = getSpendingRate();
+  const el = document.getElementById('rate-display');
+  if (!el) return;
+  odometer(el, rate > 0 ? fmt(rate) + '/s' : '$0/s');
+}
+
+// ── LEADERBOARD ─────────────────────────────────────────────────────────────
+
+const LB_KEY = 'spend-it-all-leaderboard';
+const LB_MAX = 5;
+
+function fmtTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  const tenths = Math.floor((ms % 1000) / 100);
+  if (min > 0) return min + 'm ' + sec + '.' + tenths + 's';
+  return sec + '.' + tenths + 's';
+}
+
+function getLeaderboard() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY)) || {}; } catch { return {}; }
+}
+
+function saveToLeaderboard(scenarioId, timeMs) {
+  const lb = getLeaderboard();
+  if (!lb[scenarioId]) lb[scenarioId] = [];
+  const entry = { time: timeMs, date: new Date().toISOString().slice(0, 10) };
+  lb[scenarioId].push(entry);
+  lb[scenarioId].sort((a, b) => a.time - b.time);
+  lb[scenarioId] = lb[scenarioId].slice(0, LB_MAX);
+  localStorage.setItem(LB_KEY, JSON.stringify(lb));
+  return lb[scenarioId].findIndex(e => e.time === timeMs && e.date === entry.date);
+}
+
+function renderLeaderboardHTML(scenarioId, currentTimeMs) {
+  const lb = getLeaderboard();
+  const entries = lb[scenarioId] || [];
+  if (entries.length === 0) return '';
+  let html = '<div class="lb-section"><div class="lb-title">🏅 Fastest Times</div>';
+  entries.forEach((e, i) => {
+    const isCurrent = currentTimeMs != null && e.time === currentTimeMs;
+    const medals = ['🥇', '🥈', '🥉'];
+    html += `<div class="lb-row${isCurrent ? ' lb-current' : ''}">` +
+      `<span class="lb-rank">${medals[i] || '#' + (i + 1)}</span>` +
+      `<span class="lb-time">${fmtTime(e.time)}${isCurrent ? '<span class="lb-new">NEW</span>' : ''}</span>` +
+      `<span class="lb-date">${e.date}</span>` +
+    `</div>`;
+  });
+  html += '</div>';
+  return html;
+}
+
+// ── PAGE SHAKE ──────────────────────────────────────────────────────────────
+
+function triggerPageShake() {
+  document.body.classList.remove('page-shake');
+  void document.body.offsetWidth;
+  document.body.classList.add('page-shake');
+  document.body.addEventListener('animationend', () => document.body.classList.remove('page-shake'), { once: true });
+}
+
+// ── EASTER EGGS ─────────────────────────────────────────────────────────────
+
+function eeRocket() {
+  const r = document.createElement('div');
+  r.className = 'ee-rocket';
+  r.textContent = '🚀';
+  document.body.appendChild(r);
+  setTimeout(() => r.remove(), 1600);
+}
+
+function eeWhale() {
+  const w = document.createElement('div');
+  w.className = 'ee-whale';
+  w.textContent = '🐋';
+  document.body.appendChild(w);
+  setTimeout(() => w.remove(), 3100);
+}
+
+function eeBrokeCeption() {
+  if (eeBrokeTriggered) return;
+  eeBrokeTriggered = true;
+  document.body.classList.add('ee-invert');
+  document.body.addEventListener('animationend', () => document.body.classList.remove('ee-invert'), { once: true });
+}
+
+function eeMoneyFlood() {
+  const emojis = ['💵','💰','💸','🤑','💲','🪙','💎'];
+  for (let i = 0; i < 40; i++) {
+    const m = document.createElement('div');
+    m.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    m.style.cssText = `position:fixed;z-index:9998;pointer-events:none;` +
+      `font-size:${1 + Math.random() * 1.5}rem;` +
+      `left:${Math.random() * 100}vw;top:-30px;` +
+      `animation:moneyFlood ${1.5 + Math.random() * 1.5}s ease-out ${Math.random() * 0.5}s forwards;`;
+    document.body.appendChild(m);
+    setTimeout(() => m.remove(), 3500);
+  }
+}
+
+function eeGoldenConfetti() {
+  const container = document.getElementById('confetti');
+  const golds = ['#FFD700', '#FFC107', '#FFAB00', '#FFD54F', '#FFF176'];
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    const size = 6 + Math.random() * 10;
+    piece.style.width = size + 'px';
+    piece.style.height = size + 'px';
+    piece.style.background = golds[Math.floor(Math.random() * golds.length)];
+    piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+    piece.style.animationDelay = Math.random() * 0.8 + 's';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+    container.appendChild(piece);
+  }
+  setTimeout(() => { container.innerHTML = ''; }, 5000);
+}
+
+function checkEasterEggs({ item, bulk, isBuy } = {}) {
+  if (!isBuy || !item) return;
+
+  // Dogecoin → rocket flies up
+  if (item.n && item.n.toLowerCase().includes('dogecoin')) eeRocket();
+
+  // 1M Dogecoin → whale swims across
+  if (item.id === 'e16') eeWhale();
+
+  // Bulk 100+ → money flood
+  if (bulk && bulk >= 100) eeMoneyFlood();
+
+  // Remaining drops below $1 → broke-ception invert flash
+  if (remaining < 1 && remaining > 0) eeBrokeCeption();
+
+  // Exact zero → golden confetti
+  if (remaining === 0) eeGoldenConfetti();
 }
 
 // ── CORE ─────────────────────────────────────────────────────────────────────
@@ -2199,8 +2460,17 @@ function switchScenario(id, silent) {
   document.getElementById('toastContainer').innerHTML = '';
   renderAchievementsModal();
 
+  // reset rate tracking
+  spendingHistory = [];
+  if (rateIntervalId) clearInterval(rateIntervalId);
+  rateIntervalId = setInterval(updateRateDisplay, 1000);
+
+  // reset easter egg flags
+  eeBrokeTriggered = false;
+
   renderGrid();
   updateHeader();
+  updateRateDisplay();
   document.getElementById('overlay').classList.remove('open');
   document.getElementById('intro').classList.add('hidden');
   if (!silent) SFX.play('scenarioSwitch');
@@ -2223,6 +2493,8 @@ function buy(id) {
   }
   it.count++;
   remaining = Math.round((remaining - it.p) * 1e6) / 1e6;
+  if (it.p > sc.budget * 0.01) triggerPageShake();
+  recordSpending(it.p);
   updateCard(id);
   updateHeader('buy');
   recheckBuyBtns(id);
@@ -2230,6 +2502,7 @@ function buy(id) {
   if (card) squishBtn(card, 'buy');
   flyEmoji(id, 1);
   checkAchievements({ isBuy: true, item: it });
+  checkEasterEggs({ item: it, isBuy: true });
   if (!checkWin()) SFX.play('buy');
 }
 
@@ -2377,6 +2650,9 @@ function setQty(id, rawVal) {
   if (actual === 0) { updateCard(id); return; }
   if (actual > 0) bulkMax = Math.max(bulkMax, actual);
   remaining = Math.round((remaining - actual * it.p) * 1e6) / 1e6;
+  const totalCost = Math.abs(actual) * it.p;
+  if (actual > 0 && totalCost > sc.budget * 0.01) triggerPageShake();
+  if (actual > 0) recordSpending(totalCost);
   it.count = desired;
   updateCard(id);
   updateHeader(actual > 0 ? 'buy' : 'sell');
@@ -2387,6 +2663,7 @@ function setQty(id, rawVal) {
     flyEmoji(id, actual);
     if (card) squishBtn(card, 'buy');
     checkAchievements({ isBuy: true, item: it, bulk: actual });
+    checkEasterEggs({ item: it, bulk: actual, isBuy: true });
     if (!checkWin()) SFX.play(Math.abs(actual) > 1 ? 'bulkBuy' : 'buy');
   } else {
     const card = document.getElementById('c-' + id);
@@ -2515,8 +2792,11 @@ function checkWin() {
   if (remaining < cheapest) {
     SFX.play('win');
     launchConfetti();
+    const completionTime = firstBuyTime ? Date.now() - firstBuyTime : 0;
+    if (completionTime > 0) saveToLeaderboard(sc.id, completionTime);
     checkAchievements({ isWin: true });
-    openSummary(true);
+    openSummary(true, completionTime);
+    if (rateIntervalId) clearInterval(rateIntervalId);
     return true;
   }
   return false;
@@ -2524,7 +2804,7 @@ function checkWin() {
 
 // ── SUMMARY / OVERLAY ────────────────────────────────────────────────────────
 
-function openSummary(isEnd) {
+function openSummary(isEnd, completionTime) {
   const bought = items.filter(i => i.count > 0);
   const spent  = sc.budget - remaining;
 
@@ -2587,6 +2867,19 @@ function openSummary(isEnd) {
     receipt.parentNode.insertBefore(achDiv, receipt.nextSibling);
   }
 
+  // Show leaderboard on win
+  if (isEnd && sc) {
+    const lbHtml = renderLeaderboardHTML(sc.id, completionTime || null);
+    if (lbHtml) {
+      const lbDiv = document.createElement('div');
+      lbDiv.innerHTML = lbHtml;
+      // Insert after achievements (or after receipt if no achievements)
+      const afterNode = receipt.nextSibling;
+      const insertPoint = afterNode ? afterNode.nextSibling : null;
+      receipt.parentNode.insertBefore(lbDiv, insertPoint);
+    }
+  }
+
   SFX.play('openPanel');
   document.getElementById('overlay').classList.add('open');
 }
@@ -2602,6 +2895,8 @@ function closeOverlay() { SFX.play('continueSpending'); document.getElementById(
 
 function resetCurrent() {
   SFX.play('reset');
+  if (rateIntervalId) { clearInterval(rateIntervalId); rateIntervalId = null; }
+  spendingHistory = [];
   document.getElementById('overlay').classList.remove('open');
   document.getElementById('intro').classList.remove('hidden');
 }
