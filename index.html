@@ -2027,7 +2027,6 @@ const ACHIEVEMENTS = [
   { id: 'speed_run',    icon: '⚡', title: 'Speed Runner',         sub: 'Spent it all in under 60 seconds.',   hint: 'Win within 60 seconds of your first purchase.'       },
   { id: 'high_roller',  icon: '🎲', title: 'High Roller',          sub: 'First item cost 10%+ of budget.',     hint: 'Make your first purchase cost at least 10% of the total budget.' },
   { id: 'minimalist',   icon: '🧘', title: 'Minimalist',           sub: 'Won using 3 item types or fewer.',    hint: 'Win the game owning no more than 3 different items.' },
-  { id: 'precision',    icon: '🎯', title: 'Precision',            sub: 'Finished with under $1.00 left.',     hint: 'Win with less than $1.00 remaining.'                 },
   { id: 'bulk_buyer',   icon: '🏋️', title: 'Bulk Buyer',           sub: 'Bought 50+ of one item at once.',     hint: 'Type a quantity of 50 or more into a single item\'s field.' },
   { id: 'all_in',       icon: '💥', title: 'All In',               sub: 'One item. Over half the budget.',     hint: 'Buy a single item that costs more than 50% of your total budget.' },
   { id: 'completionist',icon: '🌟', title: 'Completionist',        sub: 'Every achievement unlocked.',         hint: 'Unlock all other achievements in one run.'           },
@@ -2094,7 +2093,6 @@ function checkAchievements({ isBuy, isSell, isWin, pct, item, bulk } = {}) {
   if (isBuy && item && item.p >= sc.budget * 0.5)                        unlock('all_in');
   if (bulk && bulk >= 50)                                                 unlock('bulk_buyer');
   if (isWin && items.filter(i => i.count > 0).length <= 3)               unlock('minimalist');
-  if (isWin && remaining < 1)                                             unlock('precision');
   if (isWin && firstBuyTime && (Date.now() - firstBuyTime) < 60_000)     unlock('speed_run');
 
   if (isWin)                                                              unlock('win');
