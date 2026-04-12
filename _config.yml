@@ -1,0 +1,3 @@
+# GitHub Pages: include .well-known/ directory (Jekyll excludes dotfiles by default)
+include:
+  - .well-known

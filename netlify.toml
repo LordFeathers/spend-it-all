@@ -1,0 +1,14 @@
+[build]
+  publish = "."
+
+# Serve .well-known/assetlinks.json with correct headers (required for TWA URL-bar removal)
+[[headers]]
+  for = "/.well-known/assetlinks.json"
+  [headers.values]
+    Content-Type  = "application/json"
+    Access-Control-Allow-Origin = "*"
+
+[[headers]]
+  for = "/manifest.json"
+  [headers.values]
+    Content-Type = "application/manifest+json"
