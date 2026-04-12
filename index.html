@@ -1507,14 +1507,15 @@
       }
       .hud-stat:last-child { border-right: none; }
       .hud-stat-lbl { font-size: 0.42rem; }
-      /* Make value a horizontal flex row so od-char spans never wrap */
+      /* Horizontal flex row — wraps to a 2nd line on very long numbers */
       .hud-stat-val {
         display: flex;
         flex-direction: row;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         align-items: baseline;
         font-size: 0.95rem;
         letter-spacing: -0.02em;
+        line-height: 1.25;
       }
 
       /* ── Row 3: Main Menu + Summary + Achievements ─ */
@@ -3093,7 +3094,7 @@ function odometer(el, newText) {
 
 function updateHeader(flash) {
   const el = document.getElementById('bal');
-  odometer(el, window.innerWidth <= 600 ? fmt(remaining) : fmtFull(remaining));
+  odometer(el, fmtFull(remaining));
   el.title = fmtFull(remaining);
   if (flash) {
     el.classList.remove('flash-buy', 'flash-sell');
@@ -3103,7 +3104,7 @@ function updateHeader(flash) {
   const spent   = sc.budget - remaining;
   const pct     = Math.min(100, (spent / sc.budget) * 100);
   const spentEl = document.getElementById('spent-display');
-  odometer(spentEl, window.innerWidth <= 600 ? fmt(spent) : fmtFull(spent));
+  odometer(spentEl, fmtFull(spent));
   spentEl.title = fmtFull(spent);
   document.getElementById('pfill').style.width = pct + '%';
   if (flash === 'buy') {
