@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Spend It All</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💸</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=JetBrains+Mono:wght@700;800&display=swap" rel="stylesheet">
@@ -813,38 +814,269 @@
       font: 800 0.85rem/1 var(--font-body);
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
+    .lb-title-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.4rem;
+      height: 1.4rem;
+      border-radius: 6px;
+      background: color-mix(in srgb, var(--accent) 15%, transparent);
+      border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+      font-size: 0.7rem;
+    }
+
+    /* Personal Best banner */
+    .lb-pb {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      margin-bottom: 0.75rem;
+      border-radius: 8px;
+      background: rgba(74, 222, 128, 0.08);
+      border: 1px solid rgba(74, 222, 128, 0.25);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #4ade80;
+      opacity: 0;
+      animation: lbSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+    }
+    .lb-pb-icon { font-size: 1rem; flex-shrink: 0; }
+
+    /* Podium grid (top 3) */
+    .lb-podium {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+    .lb-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0.65rem 0.4rem 0.55rem;
+      border-radius: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s, background 0.2s;
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+    }
+    .lb-card:hover {
+      border-color: var(--border-hover);
+      background: var(--surface3);
+    }
+    .lb-card[data-rank="1"] {
+      border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+      background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--accent) 6%, var(--surface2)) 0%,
+        var(--surface2) 100%
+      );
+    }
+    .lb-card[data-rank="1"]:hover {
+      border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+    }
+    .lb-card.lb-current {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .lb-card.lb-current::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 10px;
+      border: 1px solid var(--accent);
+      opacity: 0;
+      animation: lbGlow 2s ease-in-out infinite;
+    }
+
+    /* Rank badges */
+    .lb-badge {
+      width: 1.65rem;
+      height: 1.65rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.6rem;
+      font-weight: 900;
+      font-family: var(--font-mono);
+      margin-bottom: 0.35rem;
+      flex-shrink: 0;
+      border: 1.5px solid;
+    }
+    .lb-badge[data-rank="1"] {
+      background: rgba(255, 215, 0, 0.12);
+      color: #FFD700;
+      border-color: rgba(255, 215, 0, 0.35);
+    }
+    .lb-badge[data-rank="2"] {
+      background: rgba(168, 180, 196, 0.10);
+      color: #a8b4c4;
+      border-color: rgba(168, 180, 196, 0.30);
+    }
+    .lb-badge[data-rank="3"] {
+      background: rgba(205, 127, 50, 0.10);
+      color: #cd7f32;
+      border-color: rgba(205, 127, 50, 0.30);
+    }
+    .lb-badge[data-rank="4"],
+    .lb-badge[data-rank="5"] {
+      background: var(--surface3);
+      color: var(--text-muted);
+      border-color: var(--border);
+    }
+
+    /* Card content */
+    .lb-card-time {
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 0.8rem;
+      color: var(--text);
+      margin-bottom: 0.15rem;
+      font-variant-numeric: tabular-nums;
+    }
+    .lb-card[data-rank="1"] .lb-card-time { color: var(--accent); }
+    .lb-delta {
+      font-family: var(--font-mono);
+      font-size: 0.58rem;
+      font-weight: 700;
+      color: var(--text-dim);
+      margin-bottom: 0.3rem;
+    }
+    .lb-card-date {
+      font-size: 0.55rem;
+      color: var(--text-dim);
+      margin-top: auto;
+    }
+
+    /* Time bar (cards) */
+    .lb-bar-track {
+      width: 100%;
+      height: 3px;
+      background: var(--surface);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-top: 0.35rem;
+      margin-bottom: 0.3rem;
+    }
+    .lb-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      opacity: 0.5;
+    }
+    .lb-card[data-rank="1"] .lb-bar-fill { opacity: 1; }
+
+    /* Compact rows (ranks 4-5) */
+    .lb-rest { display: flex; flex-direction: column; gap: 0; }
     .lb-row {
       display: flex;
       align-items: center;
-      padding: 0.4rem 0;
+      padding: 0.4rem 0.5rem;
       border-bottom: 1px solid var(--border);
-      font-size: 0.75rem;
-      gap: 0.75rem;
+      font-size: 0.72rem;
+      gap: 0.6rem;
+      border-radius: 6px;
+      transition: background 0.15s;
+      opacity: 0;
+      transform: translateY(6px);
     }
     .lb-row:last-child { border-bottom: none; }
-    .lb-row.lb-current { background: var(--accent-dim); border-radius: 6px; padding: 0.4rem 0.5rem; }
-    .lb-rank { width: 2rem; font-weight: 700; color: var(--text-muted); flex-shrink: 0; }
-    .lb-time { font-family: var(--font-mono); font-weight: 700; color: var(--accent); flex: 1; }
-    .lb-date { color: var(--text-muted); font-size: 0.65rem; }
+    .lb-row:hover { background: rgba(255,255,255,0.02); }
+    .lb-row.lb-current { background: var(--accent-dim); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+    .lb-row-badge {
+      width: 1.3rem;
+      height: 1.3rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.55rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      background: var(--surface3);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .lb-row-time {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+    .lb-row-delta {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      color: var(--text-dim);
+      flex-shrink: 0;
+    }
+    .lb-row-bar-track {
+      flex: 1;
+      height: 2px;
+      background: var(--surface);
+      border-radius: 9999px;
+      overflow: hidden;
+      min-width: 2rem;
+    }
+    .lb-row-bar-fill {
+      height: 100%;
+      border-radius: 9999px;
+      background: var(--accent);
+      opacity: 0.35;
+      width: 0%;
+      transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .lb-row-date {
+      color: var(--text-dim);
+      font-size: 0.58rem;
+      flex-shrink: 0;
+    }
+
+    /* NEW badge */
     .lb-new {
       display: inline-block;
-      font-size: 0.5rem;
+      font-size: 0.45rem;
       font-weight: 800;
       text-transform: uppercase;
+      letter-spacing: 0.06em;
       background: rgba(74,222,128,0.15);
       color: #4ade80;
       border: 1px solid rgba(74,222,128,0.3);
-      border-radius: 4px;
-      padding: 0.08rem 0.35rem;
-      margin-left: 0.35rem;
-      letter-spacing: 0.05em;
+      border-radius: 9999px;
+      padding: 0.1rem 0.35rem;
+      margin-top: 0.25rem;
       animation: lbPulse 1.5s ease-in-out infinite;
+    }
+
+    /* Leaderboard animations */
+    @keyframes lbSlideIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes lbGlow {
+      0%, 100% { opacity: 0.4; }
+      50%      { opacity: 1; }
     }
     @keyframes lbPulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+      50%      { opacity: 0.5; }
     }
 
     /* ── EASTER EGGS ──────────────────────────── */
@@ -1216,58 +1448,104 @@
     /* ── PHONE (≤ 600px) ──────────────────────── */
     @media (max-width: 600px) {
 
-      /* ── Header — 2-row compact HUD ──────────── */
+      /* ── Header — fully redesigned for mobile ──── */
       .header-bar { flex-wrap: wrap; height: auto; padding: 0; }
 
-      /* Row 1: logo · scenario · ☰ · 🔊 */
+      /* ── Row 1: Logo · Scenario · Mute ─────────── */
       .hud-logo {
-        padding: 0 0.6rem;
+        order: 1;
+        flex: none;          /* logo takes its natural width */
+        padding: 0 0.75rem;
+        height: 40px;
         border-right: none;
-        height: 38px;
       }
-      .hud-logo-icon { font-size: 1.1rem; }
-      .hud-logo-text { font-size: 0.8rem; }
+      .hud-logo-icon { font-size: 1.15rem; }
+      .hud-logo-text { font-size: 0.85rem; }
       .sc-label {
-        flex: 1;
-        border-right: none;
-        padding: 0 0.4rem;
-        height: 38px;
+        order: 1;            /* join row 1 */
+        flex: 1;             /* fill space between logo and mute */
+        width: auto;         /* no longer full-width */
+        height: 40px;
+        padding: 0 0.6rem;
+        border-left: 1px solid var(--border);
+        border-right: none;  /* mute has its own left border */
+        border-top: none;
         font-size: 0.55rem;
+        justify-content: flex-start;
       }
-      .btn-menu {
-        border-right: none; border-left: 1px solid var(--border);
-        padding: 0 0.55rem; height: 38px;
+      .hud-spacer { display: none; }
+      .btn-mute {
+        order: 1;
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+        border-left: 1px solid var(--border);
       }
-      .btn-menu-label { display: none; }
-      .btn-mute { width: 38px; height: 38px; font-size: 0.85rem; }
 
-      /* Row 2: stats + actions — everything inline */
+      /* ── Row 2: Stats ───────────────────────────── */
       .hud-stats {
-        order: 10; /* push to row 2 */
-        width: auto;
-        flex: 1;
-        border-right: none;
+        order: 2;
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        flex-shrink: 0;
         border-top: 1px solid var(--border);
+        border-right: none;
+        height: auto;
       }
       .hud-stat {
         flex: 1;
-        padding: 0.35rem 0.4rem;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        padding: 0.45rem 0.75rem;
         height: auto;
-        gap: 0.25rem;
+        gap: 0.06rem;
+        min-width: 0;
+        border-right: 1px solid var(--border);
       }
-      .hud-stat-lbl { font-size: 0.45rem; }
-      .hud-stat-val { font-size: 0.7rem; letter-spacing: -0.02em; }
+      .hud-stat:last-child { border-right: none; }
+      .hud-stat-lbl { font-size: 0.42rem; }
+      /* Make value a horizontal flex row so od-char spans never wrap */
+      .hud-stat-val {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: baseline;
+        font-size: 0.95rem;
+        letter-spacing: -0.02em;
+      }
 
-      .hud-spacer { display: none; }
-      .btn-summary {
-        order: 10;
-        border-left: 1px solid var(--border);
-        border-right: none;
+      /* ── Row 3: Main Menu + Summary + Achievements ─ */
+      .btn-menu {
+        order: 3;
+        flex: 1;
+        height: 34px;
+        padding: 0 0.4rem;
+        justify-content: center;
+        border-left: none;
+        border-right: 1px solid var(--border);
         border-top: 1px solid var(--border);
-        padding: 0 0.5rem; height: 38px;
-        font-size: 0;           /* hide text */
+        font-size: 0.57rem;
+        gap: 0.3rem;
       }
-      .btn-summary-icon { font-size: 0.9rem; }
+      .btn-menu-label { display: inline; }
+      .btn-summary {
+        order: 3;
+        flex: 1;
+        height: 34px;
+        padding: 0 0.4rem;
+        border-left: none;
+        border-right: 1px solid var(--border);
+        border-top: 1px solid var(--border);
+        font-size: 0.57rem;
+        gap: 0.3rem;
+        justify-content: center;
+        display: flex;
+        align-items: center;
+      }
+      .btn-summary-icon { font-size: 0.8rem; }
 
       /* ── Grid ────────────────────────────────── */
       .main { padding: 0.5rem; }
@@ -1295,6 +1573,15 @@
       .ach-row-title { font-size: 0.6rem; }
       .ach-row-sub   { font-size: 0.5rem; }
       .ach-row-badge { font-size: 0.45rem; padding: 0.08rem 0.3rem; }
+
+      /* ── Leaderboard ──────────────────────────── */
+      .lb-podium { gap: 0.3rem; }
+      .lb-card { padding: 0.5rem 0.3rem 0.45rem; }
+      .lb-badge { width: 1.4rem; height: 1.4rem; font-size: 0.5rem; }
+      .lb-card-time { font-size: 0.68rem; }
+      .lb-delta { font-size: 0.5rem; }
+      .lb-card-date { font-size: 0.48rem; }
+      .lb-pb { font-size: 0.65rem; padding: 0.45rem 0.6rem; }
 
       /* ── Intro ───────────────────────────────── */
       .intro-inner { padding: 0 0.5rem; }
@@ -2125,22 +2412,103 @@ function saveToLeaderboard(scenarioId, timeMs) {
   return lb[scenarioId].findIndex(e => e.time === timeMs && e.date === entry.date);
 }
 
+function fmtLeaderboardDate(dateStr) {
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yestStr = yesterday.toISOString().slice(0, 10);
+  if (dateStr === todayStr) return 'Today';
+  if (dateStr === yestStr) return 'Yesterday';
+  const parts = dateStr.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[parseInt(parts[1], 10) - 1] + ' ' + parseInt(parts[2], 10);
+}
+
 function renderLeaderboardHTML(scenarioId, currentTimeMs) {
   const lb = getLeaderboard();
   const entries = lb[scenarioId] || [];
   if (entries.length === 0) return '';
-  let html = '<div class="lb-section"><div class="lb-title">🏅 Fastest Times</div>';
-  entries.forEach((e, i) => {
+
+  const bestTime = entries[0].time;
+  const isCurrentPB = currentTimeMs != null && entries[0].time === currentTimeMs;
+
+  let html = '<div class="lb-section">';
+  html += '<div class="lb-title"><span class="lb-title-icon">&#9201;</span> Fastest Times</div>';
+
+  // Personal Best callout
+  if (isCurrentPB) {
+    html += '<div class="lb-pb"><span class="lb-pb-icon">&#127942;</span> New Personal Best!</div>';
+  }
+
+  // Podium (top 3)
+  const podiumEntries = entries.slice(0, 3);
+  html += '<div class="lb-podium">';
+  podiumEntries.forEach((e, i) => {
     const isCurrent = currentTimeMs != null && e.time === currentTimeMs;
-    const medals = ['🥇', '🥈', '🥉'];
-    html += `<div class="lb-row${isCurrent ? ' lb-current' : ''}">` +
-      `<span class="lb-rank">${medals[i] || '#' + (i + 1)}</span>` +
-      `<span class="lb-time">${fmtTime(e.time)}${isCurrent ? '<span class="lb-new">NEW</span>' : ''}</span>` +
-      `<span class="lb-date">${e.date}</span>` +
-    `</div>`;
+    const barPct = Math.round((bestTime / e.time) * 100);
+    const deltaSec = i > 0 ? ((e.time - bestTime) / 1000).toFixed(1) : null;
+    const rank = i + 1;
+
+    html += `<div class="lb-card${isCurrent ? ' lb-current' : ''}" data-rank="${rank}" data-lb-index="${i}">`;
+    html += `<div class="lb-badge" data-rank="${rank}">${rank}</div>`;
+    html += `<div class="lb-card-time">${fmtTime(e.time)}</div>`;
+    if (deltaSec !== null) {
+      html += `<div class="lb-delta">+${deltaSec}s</div>`;
+    }
+    if (isCurrent) {
+      html += '<div class="lb-new">NEW</div>';
+    }
+    html += `<div class="lb-bar-track"><div class="lb-bar-fill" data-pct="${barPct}"></div></div>`;
+    html += `<div class="lb-card-date">${fmtLeaderboardDate(e.date)}</div>`;
+    html += '</div>';
   });
   html += '</div>';
+
+  // Remaining entries (4-5) in compact rows
+  if (entries.length > 3) {
+    html += '<div class="lb-rest">';
+    entries.slice(3).forEach((e, i) => {
+      const rank = i + 4;
+      const isCurrent = currentTimeMs != null && e.time === currentTimeMs;
+      const barPct = Math.round((bestTime / e.time) * 100);
+      const deltaSec = ((e.time - bestTime) / 1000).toFixed(1);
+
+      html += `<div class="lb-row${isCurrent ? ' lb-current' : ''}" data-lb-index="${rank - 1}">`;
+      html += `<div class="lb-row-badge">${rank}</div>`;
+      html += `<div class="lb-row-time">${fmtTime(e.time)}</div>`;
+      html += `<div class="lb-row-delta">+${deltaSec}s</div>`;
+      html += `<div class="lb-row-bar-track"><div class="lb-row-bar-fill" data-pct="${barPct}"></div></div>`;
+      html += `<div class="lb-row-date">${fmtLeaderboardDate(e.date)}</div>`;
+      if (isCurrent) {
+        html += '<div class="lb-new" style="margin-top:0;margin-left:0.3rem;">NEW</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  html += '</div>';
   return html;
+}
+
+function animateLeaderboard(container) {
+  if (!container) return;
+  // Staggered entrance for cards and rows
+  const items = container.querySelectorAll('.lb-card, .lb-row');
+  items.forEach((el) => {
+    const idx = parseInt(el.dataset.lbIndex, 10) || 0;
+    const delay = 0.08 + idx * 0.07;
+    el.style.animation = `lbSlideIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) ${delay}s forwards`;
+  });
+  // Animate bar fills after items have appeared
+  const bars = container.querySelectorAll('.lb-bar-fill, .lb-row-bar-fill');
+  bars.forEach((bar) => {
+    const pct = bar.dataset.pct || '0';
+    const card = bar.closest('.lb-card, .lb-row');
+    const idx = card ? (parseInt(card.dataset.lbIndex, 10) || 0) : 0;
+    setTimeout(() => { bar.style.width = pct + '%'; }, (0.08 + idx * 0.07) * 1000 + 200);
+  });
 }
 
 // ── PAGE SHAKE ──────────────────────────────────────────────────────────────
@@ -2839,6 +3207,8 @@ function openSummary(isEnd, completionTime) {
       const afterNode = receipt.nextSibling;
       const insertPoint = afterNode ? afterNode.nextSibling : null;
       receipt.parentNode.insertBefore(lbDiv, insertPoint);
+      // Trigger staggered entrance animations
+      requestAnimationFrame(() => animateLeaderboard(lbDiv));
     }
   }
 
