@@ -3,6 +3,6 @@
   "target": {
     "namespace": "android_app",
     "package_name": "com.lordfeathers.spenditall",
-    "sha256_cert_fingerprints": ["PASTE_OUTPUT_OF_bubblewrap_fingerprint_HERE"]
+    "sha256_cert_fingerprints": ["5B:89:CC:7F:4D:00:9D:3D:94:2F:14:B1:19:79:DA:DD:32:5D:7F:34:74:2D:99:43:62:46:CE:AB:C8:85:A7:F2"]
   }
 }]
