@@ -2,7 +2,7 @@
 
 A browser-based spending simulator. Pick a scenario and try to blow through an absurd amount of money.
 
-**[▶ Play it here](https://spend-it-all.vercel.app/)**
+**[▶ Play it here](https://www.yaakovsassoon.com/)**
 
 ## Scenarios
 
