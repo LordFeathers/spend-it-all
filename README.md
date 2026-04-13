@@ -2,7 +2,7 @@
 
 A browser-based spending simulator. Pick a scenario and try to blow through an absurd amount of money.
 
-**[▶ Play it here](https://www.yaakovsassoon.com/)**
+**[▶ Play it at yaakovsassoon.com](https://www.yaakovsassoon.com/)** · **[⬇ Android APK](https://www.yaakovsassoon.com/spend-it-all.apk)**
 
 ## Scenarios
 
@@ -18,7 +18,8 @@ Each scenario has 40+ items ranging from a Big Mac to buying Mars.
 - Live balance and amount spent update in real time
 - Progress bar shows how much you've blown through
 - Spending summary with receipt of everything you bought
+- Installable as a PWA or as a native Android app (TWA)
 
 ## Made by
 
-Yaakov Sassoon
+[Yaakov Sassoon](https://www.yaakovsassoon.com)
