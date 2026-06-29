@@ -2637,6 +2637,33 @@ const ACHIEVEMENTS = [
 
 let achievementsEarned = new Set();
 
+// Several achievements are tied to an absolute dollar amount or to owning a
+// specific item, so whether they're even attainable depends on the current
+// scenario's (live, snapshotted) budget and item prices — you can't spend $1B
+// in a $360M Powerball, buy a $1B item you can't afford, drop 50% of a $1T
+// budget on a single $199B item, or max out a limited item priced above budget.
+// Recomputed from `sc` wherever achievements are filtered, so it adapts as the
+// live numbers change (e.g. Elon crossing $1T makes Trillionaire attainable).
+// Count/percentage-based achievements (buy N items, hoarder, diverse, halfway,
+// almost_broke, win, speed_run, minimalist, bulk_buyer) scale with any budget
+// because cheap items always exist, so they're never gated.
+function achievementPossible(id) {
+  if (!sc) return true;
+  const b = sc.budget;
+  const affordable = min => sc.items.some(i => i.p >= min && i.p <= b);
+  switch (id) {
+    case 'spent_1m':    return b >= 1_000_000;
+    case 'spent_1b':    return b >= 1_000_000_000;
+    case 'spent_1t':    return b >= 1_000_000_000_000;
+    case 'big_first':   return affordable(1_000_000);
+    case 'big_item':    return affordable(1_000_000_000);
+    case 'high_roller': return affordable(b * 0.1);
+    case 'all_in':      return affordable(b * 0.5);
+    case 'maxed_item':  return sc.items.some(i => i.maxQty != null && i.p <= b);
+    default:            return true;
+  }
+}
+
 // Skill tracking
 let firstBuyTime    = 0;       // timestamp of first purchase
 let bulkMax         = 0;       // largest single qty-input transaction
@@ -2681,7 +2708,7 @@ function checkAchievements({ isBuy, isSell, isWin, pct, item, bulk } = {}) {
   if (totalBought >= 100)                                                 unlock('buy_100');
   if (spent >= 1_000_000)                                                 unlock('spent_1m');
   if (spent >= 1_000_000_000)                                             unlock('spent_1b');
-  if (sc.budget >= 1e12 && spent >= 1_000_000_000_000)                   unlock('spent_1t');
+  if (achievementPossible('spent_1t') && spent >= 1_000_000_000_000)     unlock('spent_1t');
   if (isBuy && item && item.p >= 1_000_000_000)                          unlock('big_item');
   if (isBuy && item && item.maxQty != null && item.count >= item.maxQty) unlock('maxed_item');
   if (isBuy && items.some(i => i.count >= 10))                           unlock('hoarder');
@@ -2700,10 +2727,10 @@ function checkAchievements({ isBuy, isSell, isWin, pct, item, bulk } = {}) {
 
   if (isWin)                                                              unlock('win');
 
-  // Completionist — check after all others, exclude itself and budget-gated ones if not applicable
+  // Completionist — check after all others, excluding itself and any achievement
+  // that isn't attainable at this scenario's budget.
   const visible = ACHIEVEMENTS.filter(a =>
-    a.id !== 'completionist' &&
-    (a.id !== 'spent_1t' || sc.budget >= 1e12)
+    a.id !== 'completionist' && achievementPossible(a.id)
   );
   if (visible.every(a => achievementsEarned.has(a.id)))                  unlock('completionist');
 }
@@ -2746,11 +2773,7 @@ function renderAchievementsModal() {
   const count = document.getElementById('achCount');
   if (!grid) return;
   grid.innerHTML = '';
-  const visibleAchievements = ACHIEVEMENTS.filter(a => {
-    if (a.id === 'spent_1t' && sc && sc.budget < 1e12) return false;
-    if (a.id === 'spent_1b' && sc && sc.budget < 1e9)  return false;
-    return true;
-  });
+  const visibleAchievements = ACHIEVEMENTS.filter(a => achievementPossible(a.id));
   count.textContent = achievementsEarned.size + ' / ' + visibleAchievements.length + ' unlocked';
   visibleAchievements.forEach(a => {
     const row = document.createElement('div');
@@ -3182,9 +3205,7 @@ function openSummary(isEnd, completionTime) {
     achDiv.className = 'summary-extra';
     achDiv.style.cssText = 'margin-bottom:1.5rem;';
 
-    const visibleAch = ACHIEVEMENTS.filter(a =>
-      a.id !== 'spent_1t' || (sc && sc.budget >= 1e12)
-    );
+    const visibleAch = ACHIEVEMENTS.filter(a => achievementPossible(a.id));
     const earned = visibleAch.filter(a => achievementsEarned.has(a.id));
 
     achDiv.innerHTML =
