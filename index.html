@@ -2786,6 +2786,8 @@ function achOverlayClick(e) {
 
 function switchScenario(id, silent) {
   sc = SCENARIOS.find(s => s.id === id);
+  // Lock the live, ticking value as this game's budget at the moment of selection.
+  sc.budget = Math.round(liveValueFor(sc.id) || ORIGINAL_BUDGETS[sc.id]);
   items = sc.items
     .slice()
     .sort((a, b) => a.p - b.p)
