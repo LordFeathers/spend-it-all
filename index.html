@@ -3271,6 +3271,39 @@ function renderGrid() {
 
 // Build intro options from scenario data
 const introEl = document.getElementById('introOptions');
+
+// ── LIVE FIGURES ─────────────────────────────────────────────────────────────
+// Fallback seeds so cards tick even offline; overwritten by /api/live.
+const ORIGINAL_BUDGETS = {};
+SCENARIOS.forEach(s => { ORIGINAL_BUDGETS[s.id] = s.budget; });
+
+const liveData = {
+  debt:      { base: 39_300_000_000_000, perSecond: 64500, fetchedAtMs: Date.now() },
+  powerball: { base: 360_000_000,        perSecond: 0,     fetchedAtMs: Date.now() },
+  elon:      { base: 355_000_000_000,    perSecond: 0,     fetchedAtMs: Date.now() },
+};
+
+function liveValueFor(id) {
+  const d = liveData[id];
+  if (!d) return ORIGINAL_BUDGETS[id] || 0;
+  const elapsed = (Date.now() - d.fetchedAtMs) / 1000;
+  return d.base + (d.perSecond || 0) * elapsed;
+}
+
+async function fetchLive() {
+  try {
+    const r = await fetch('/api/live', { cache: 'no-store' });
+    if (!r.ok) throw new Error('bad status');
+    const j = await r.json();
+    const now = Date.now();
+    liveData.debt      = { base: j.debt.value,      perSecond: j.debt.perSecond || 0, fetchedAtMs: now };
+    liveData.powerball = { base: j.powerball.value, perSecond: 0,                     fetchedAtMs: now };
+    liveData.elon      = { base: j.elon.value,      perSecond: 0,                     fetchedAtMs: now };
+  } catch (e) {
+    // keep current seeds/fallbacks — app stays playable offline
+  }
+}
+
 SCENARIOS.forEach(s => {
   const btn = document.createElement('button');
   btn.className = 'intro-opt';
@@ -3281,10 +3314,21 @@ SCENARIOS.forEach(s => {
       `<div class="intro-opt-name">${s.label.replace(/^[^\s]+\s/, '')}</div>` +
       `<div class="intro-opt-detail">${s.tagline}</div>` +
     `</div>` +
-    `<div class="intro-opt-budget">${fmt(s.budget)}</div>`;
+    `<div class="intro-opt-budget">${fmtFull(liveValueFor(s.id))}</div>`;
   btn.onclick = () => switchScenario(s.id);
   introEl.appendChild(btn);
 });
+
+// Tick the intro card numbers up live; re-poll the API periodically.
+function tickIntroBudgets() {
+  introEl.querySelectorAll('.intro-opt').forEach(btn => {
+    const el = btn.querySelector('.intro-opt-budget');
+    if (el) el.textContent = fmtFull(liveValueFor(btn.dataset.id));
+  });
+}
+setInterval(tickIntroBudgets, 100);
+fetchLive();
+setInterval(fetchLive, 30000);
 
 document.getElementById('muteBtn').textContent = SFX.isMuted() ? '🔇' : '🔊';
 createIntroParticles();
