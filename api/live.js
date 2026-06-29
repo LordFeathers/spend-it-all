@@ -59,8 +59,13 @@ async function getPowerball() {
   return { ...parsed, ok: true };
 }
 
+// Free Finnhub key. Prefer the env var; fall back to this baked-in key so the
+// endpoint works without any Vercel config. The owner has accepted exposure of
+// this free key; it is server-side only and never returned to the client.
+const FINNHUB_KEY_FALLBACK = 'd90si0hr01qpn7h422pgd90si0hr01qpn7h422q0';
+
 async function getElon() {
-  const key = process.env.FINNHUB_KEY;
+  const key = process.env.FINNHUB_KEY || FINNHUB_KEY_FALLBACK;
   if (!key) throw new Error('no FINNHUB_KEY');
   const r = await fetch('https://finnhub.io/api/v1/quote?symbol=TSLA&token=' + key);
   if (!r.ok) throw new Error('finnhub ' + r.status);
