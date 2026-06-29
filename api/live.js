@@ -15,4 +15,14 @@ function computeDebt(records) {
   return { value, recordDate, perSecond };
 }
 
-module.exports = { computeDebt };
+function parsePowerballJackpot(html) {
+  const m = html.match(/Estimated\s+Jackpot[\s\S]{0,120}?\$\s*([\d.,]+)\s*(Million|Billion)/i)
+         || html.match(/\$\s*([\d.,]+)\s*(Million|Billion)/i);
+  if (!m) return null;
+  const num = parseFloat(m[1].replace(/,/g, ''));
+  if (!isFinite(num)) return null;
+  const mult = /billion/i.test(m[2]) ? 1e9 : 1e6;
+  return { value: Math.round(num * mult) };
+}
+
+module.exports = { computeDebt, parsePowerballJackpot };
