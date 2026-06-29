@@ -25,4 +25,17 @@ function parsePowerballJackpot(html) {
   return { value: Math.round(num * mult) };
 }
 
-module.exports = { computeDebt, parsePowerballJackpot };
+// Elon holdings — seed values, mid-2026. Tune periodically from the
+// Bloomberg Billionaires Index. The Tesla slice moves live with TSLA;
+// the private slice (SpaceX + xAI + Boring + Neuralink + cash) is a fixed estimate.
+const TESLA_SHARE_COUNT = 411_000_000;            // approx. core Tesla shares held
+const PRIVATE_HOLDINGS_USD = 215_000_000_000;     // SpaceX + xAI + others, est.
+
+function computeElonNetWorth(tslaPrice) {
+  return { value: tslaPrice * TESLA_SHARE_COUNT + PRIVATE_HOLDINGS_USD, tslaPrice };
+}
+
+module.exports = {
+  computeDebt, parsePowerballJackpot, computeElonNetWorth,
+  TESLA_SHARE_COUNT, PRIVATE_HOLDINGS_USD,
+};

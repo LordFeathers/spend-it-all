@@ -33,3 +33,11 @@ test('parsePowerballJackpot reads billions with decimals', () => {
 test('parsePowerballJackpot returns null when absent', () => {
   assert.strictEqual(parsePowerballJackpot('<html>no jackpot here</html>'), null);
 });
+
+const { computeElonNetWorth, TESLA_SHARE_COUNT, PRIVATE_HOLDINGS_USD } = require('./live.js');
+
+test('computeElonNetWorth = tsla stake + private holdings', () => {
+  const r = computeElonNetWorth(340);
+  assert.strictEqual(r.value, 340 * TESLA_SHARE_COUNT + PRIVATE_HOLDINGS_USD);
+  assert.strictEqual(r.tslaPrice, 340);
+});
