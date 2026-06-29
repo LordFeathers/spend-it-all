@@ -31,7 +31,12 @@ function parsePowerballJackpot(html) {
 // estimate. Tune the constants periodically from Bloomberg.
 const TESLA_SHARE_COUNT  = 411_000_000;            // approx. core Tesla shares held
 const SPACEX_SHARE_COUNT = 4_760_000_000;          // ~42% of SpaceX (SPCX), per S-1
-const OTHER_HOLDINGS_USD = 147_000_000_000;        // Tesla options (~$127B) + X + Neuralink + Boring (~$20B)
+// His remaining holdings are all PRIVATE (no live ticker), so they're a fixed estimate:
+//   Tesla options (net of strikes) ~$127B
+//   xAI (which now owns X / Twitter) ~$50B
+//   Neuralink ~$9B
+//   The Boring Company ~$6B
+const OTHER_HOLDINGS_USD = 192_000_000_000;
 
 function computeElonNetWorth(tslaPrice, spcxPrice) {
   const value = tslaPrice * TESLA_SHARE_COUNT
@@ -43,7 +48,7 @@ function computeElonNetWorth(tslaPrice, spcxPrice) {
 const FALLBACK = {
   debt:      { value: 39_300_000_000_000, recordDate: null, perSecond: 64500 },
   powerball: { value: 360_000_000 },
-  elon:      { value: 1_030_000_000_000, tslaPrice: null, spcxPrice: null },
+  elon:      { value: 1_077_000_000_000, tslaPrice: null, spcxPrice: null },
 };
 
 async function getDebt() {
