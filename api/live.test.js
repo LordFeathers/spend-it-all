@@ -34,10 +34,19 @@ test('parsePowerballJackpot returns null when absent', () => {
   assert.strictEqual(parsePowerballJackpot('<html>no jackpot here</html>'), null);
 });
 
-const { computeElonNetWorth, TESLA_SHARE_COUNT, PRIVATE_HOLDINGS_USD } = require('./live.js');
+const { computeElonNetWorth, TESLA_SHARE_COUNT, SPACEX_SHARE_COUNT, OTHER_HOLDINGS_USD } = require('./live.js');
 
-test('computeElonNetWorth = tsla stake + private holdings', () => {
-  const r = computeElonNetWorth(340);
-  assert.strictEqual(r.value, 340 * TESLA_SHARE_COUNT + PRIVATE_HOLDINGS_USD);
+test('computeElonNetWorth = tesla stake + spacex stake + other holdings', () => {
+  const r = computeElonNetWorth(340, 150);
+  assert.strictEqual(
+    r.value,
+    340 * TESLA_SHARE_COUNT + 150 * SPACEX_SHARE_COUNT + OTHER_HOLDINGS_USD
+  );
   assert.strictEqual(r.tslaPrice, 340);
+  assert.strictEqual(r.spcxPrice, 150);
+});
+
+test('computeElonNetWorth clears $1 trillion at realistic prices', () => {
+  const r = computeElonNetWorth(379.71, 153.23);
+  assert.ok(r.value > 1_000_000_000_000, `expected > $1T, got ${r.value}`);
 });

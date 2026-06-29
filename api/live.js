@@ -26,19 +26,24 @@ function parsePowerballJackpot(html) {
 }
 
 // Elon holdings — seed values, mid-2026. Tune periodically from the
-// Bloomberg Billionaires Index. The Tesla slice moves live with TSLA;
-// the private slice (SpaceX + xAI + Boring + Neuralink + cash) is a fixed estimate.
-const TESLA_SHARE_COUNT = 411_000_000;            // approx. core Tesla shares held
-const PRIVATE_HOLDINGS_USD = 215_000_000_000;     // SpaceX + xAI + others, est.
+// Bloomberg Billionaires Index. Both big stakes move live with their tickers
+// (TSLA + SPCX — SpaceX IPO'd on Nasdaq 2026-06-12); the remainder is a fixed
+// estimate. Tune the constants periodically from Bloomberg.
+const TESLA_SHARE_COUNT  = 411_000_000;            // approx. core Tesla shares held
+const SPACEX_SHARE_COUNT = 4_760_000_000;          // ~42% of SpaceX (SPCX), per S-1
+const OTHER_HOLDINGS_USD = 147_000_000_000;        // Tesla options (~$127B) + X + Neuralink + Boring (~$20B)
 
-function computeElonNetWorth(tslaPrice) {
-  return { value: tslaPrice * TESLA_SHARE_COUNT + PRIVATE_HOLDINGS_USD, tslaPrice };
+function computeElonNetWorth(tslaPrice, spcxPrice) {
+  const value = tslaPrice * TESLA_SHARE_COUNT
+              + spcxPrice * SPACEX_SHARE_COUNT
+              + OTHER_HOLDINGS_USD;
+  return { value, tslaPrice, spcxPrice };
 }
 
 const FALLBACK = {
   debt:      { value: 39_300_000_000_000, recordDate: null, perSecond: 64500 },
   powerball: { value: 360_000_000 },
-  elon:      { value: 355_000_000_000, tslaPrice: null },
+  elon:      { value: 1_030_000_000_000, tslaPrice: null, spcxPrice: null },
 };
 
 async function getDebt() {
@@ -67,11 +72,15 @@ const FINNHUB_KEY_FALLBACK = 'd90si0hr01qpn7h422pgd90si0hr01qpn7h422q0';
 async function getElon() {
   const key = process.env.FINNHUB_KEY || FINNHUB_KEY_FALLBACK;
   if (!key) throw new Error('no FINNHUB_KEY');
-  const r = await fetch('https://finnhub.io/api/v1/quote?symbol=TSLA&token=' + key);
-  if (!r.ok) throw new Error('finnhub ' + r.status);
-  const j = await r.json();
-  if (!j.c) throw new Error('finnhub no price');
-  return { ...computeElonNetWorth(j.c), ok: true };
+  const quote = async (sym) => {
+    const r = await fetch('https://finnhub.io/api/v1/quote?symbol=' + sym + '&token=' + key);
+    if (!r.ok) throw new Error('finnhub ' + sym + ' ' + r.status);
+    const j = await r.json();
+    if (!j.c) throw new Error('finnhub ' + sym + ' no price');
+    return j.c;
+  };
+  const [tsla, spcx] = await Promise.all([quote('TSLA'), quote('SPCX')]);
+  return { ...computeElonNetWorth(tsla, spcx), ok: true };
 }
 
 async function settle(fn, fallback) {
@@ -96,4 +105,5 @@ module.exports.computeDebt = computeDebt;
 module.exports.parsePowerballJackpot = parsePowerballJackpot;
 module.exports.computeElonNetWorth = computeElonNetWorth;
 module.exports.TESLA_SHARE_COUNT = TESLA_SHARE_COUNT;
-module.exports.PRIVATE_HOLDINGS_USD = PRIVATE_HOLDINGS_USD;
+module.exports.SPACEX_SHARE_COUNT = SPACEX_SHARE_COUNT;
+module.exports.OTHER_HOLDINGS_USD = OTHER_HOLDINGS_USD;
